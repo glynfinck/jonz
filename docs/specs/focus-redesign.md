@@ -166,7 +166,7 @@ first line, under the bar.
 3. **The Wall**: the latest four events as rows, one sentence with first
    names, the time trailing; a housemate's tick has a "Nice one" toggle, and
    a long press shows all four reactions with their labels. "See all" opens
-   the whole Wall, by day, with repeats folded, photos, and "Load older".
+   the whole Wall, by day, with repeats folded, photos, and older days loading as you scroll.
    A payment's amount shows only to the two people in it.
 4. **House setup** ("affects everyone"): Johns (count, points a week), Rules
    (stake, late, missed), Time away (who's away next), Groups (for admins, or

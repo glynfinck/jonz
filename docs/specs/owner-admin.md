@@ -107,11 +107,16 @@ signed out says what goes and stays and signs in on the way back to itself.
   happening: Something's wrong (an outage), An offer, and News. Each opens the
   editor with that kind chosen; Something's wrong also offers the ready-made
   outage words.
-- **Long lists.**
-  - Timelines (the audit log) load 50 older entries as you scroll. Each read
-    starts from the last entry shown (keyset, not offset), so it stays fast.
-    A Load older button does the same for a keyboard.
-  - Lists of things (houses, people) come later, in pages of 50 with a count.
+- **Long lists, one way everywhere** (Glyn picked A on 31 Oct). Every long
+  list, in the app and here, loads 50 more as you near the end, with no pages.
+  Each read starts from the last entry shown (keyset, not offset), so it stays
+  fast. The same foot (`ListFoot`) ends every list: how far back it goes
+  ("Showing back to Tue 27 Oct", or "Showing 50 of 128" where there's a
+  count), Loading more while it reads, That's everything at the end, and Try
+  again when a read fails. A Show more link does it for a keyboard, a screen
+  reader or a page too short to scroll. On a laptop the foot stays pinned
+  along the bottom of the window. Houses, people and sent messages use it
+  too when they're built.
 
 ## Edge cases
 
