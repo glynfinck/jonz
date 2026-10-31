@@ -287,6 +287,9 @@ permanent once a store has seen them.
 
 ### Bin Night in React Native
 
+The rules themselves (what to use where, on a phone and a laptop) are in
+`docs/style/`; this section says where they live in this app's code.
+
 - **One theme file**, `src/theme.ts`. Colours come from `useTheme()`, which
   reads `BIN_NIGHT` from `@app/core`; never write a colour anywhere else.
 - **Type:** Overpass, loaded behind the splash screen in `_layout.tsx`. Text

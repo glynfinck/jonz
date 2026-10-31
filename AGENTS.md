@@ -112,8 +112,17 @@ Overpass Black. Every brand image is drawn from the mark by `npm run brand`;
 file goes. Late and missed
 wear hazard tape. No emoji anywhere in the UI: lucide icons only, reactions
 included. Light and dark both ship; the theme follows the system by default.
-Tap targets are at least 44px. Where the tokens and components live is in
+Tap targets are at least 48px. Where the tokens and components live is in
 each app's AGENTS.md.
+
+**The style guide is `docs/style/`**: every rule for how Jonz looks and
+behaves on a phone and a laptop (the feel, words, layout, lists, controls,
+states), each with the decision it came from, and `decisions.md`, the log
+of design picks. It wins over older specs and PR descriptions. Before
+changing any screen, component, sheet, email or draft, load the
+`house-style` skill (`.claude/skills/house-style/SKILL.md`). When Glyn picks
+a design option, the PR that builds it updates the rule and adds a line to
+`docs/style/decisions.md`.
 
 ## Rules live in the lowest layer that can hold them
 
