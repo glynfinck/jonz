@@ -6,6 +6,8 @@ import {
   AUDIT_WHAT,
   AUDIT_WHO,
   auditLikeThis,
+  DELETION_FACETS,
+  DELETION_WHEN,
   facetChoices,
   listAsk,
   dropTag,
@@ -256,5 +258,24 @@ describe("tags in the box", () => {
     const query = { ...plain, picks: { who: "you", what: "notices" }, when: "week" as const };
     expect(dropTag(query, "who")).toEqual({ ...query, picks: { what: "notices" } });
     expect(dropTag(query, "when")).toEqual({ ...query, when: "any" });
+  });
+});
+
+describe("Deletions' search box", () => {
+  it("calls When Asked, and doesn't start from a moment, since the list goes soonest first", () => {
+    const labels = (text: string) => listSuggestions(text, DELETION_FACETS, NOW, ZONE, DELETION_WHEN).map((s) => s.label);
+    expect(labels("asked today")).toEqual(["Asked: Today", "Search for “asked today”"]);
+    expect(labels("yesterday 18:00")).toEqual(["Search for “yesterday 18:00”"]);
+    expect(labels("emailed")).toEqual(["Started: By you", "Search for “emailed”"]);
+    expect(labels("soon")).toEqual(["Goes: Within a day", "Goes: Within a week", "Search for “soon”"]);
+  });
+
+  it("names its tags the same way", () => {
+    const query = { q: "", picks: { by: "owner", goes: "day" }, when: "week" as const, from: null };
+    expect(listTags(query, DELETION_FACETS, ZONE, "any", DELETION_WHEN.label).map((t) => t.label)).toEqual([
+      "Started: By you",
+      "Goes: Within a day",
+      "Asked: The last 7 days",
+    ]);
   });
 });

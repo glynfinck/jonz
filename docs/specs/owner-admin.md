@@ -117,6 +117,34 @@ signed out says what goes and stays and signs in on the way back to itself.
   reader or a page too short to scroll. On a laptop the foot stays pinned
   along the bottom of the window. Houses, people and sent messages use it
   too when they're built.
+- **Busy lists, one search box** (Glyn picked B on 31 Oct). Every admin list
+  is built for thousands of rows a day, the same way (`useBusyList` and
+  `BusyListView`; a page only says where its rows come from, its filters and
+  its columns):
+  - No day headings. The time sits in its own column, with the date before
+    today ("16:41:07", "Thu 29 Oct, 23:58").
+  - One search box. What's set shows as tags in it (Who: You, When: Today),
+    each removed with its ×, or the last with backspace. Tapping into the
+    empty box lists every filter and your last five searches on this
+    device. Typing searches the words once you pause, and offers to turn
+    them into a filter instead: "me" offers Who: You, "del" What: Accounts,
+    "yesterday 18:00" a moment to start a newest-first list from. A new kind
+    of filter is one more entry in the page's list and joins the
+    suggestions, with no new control.
+  - What's set lives in the page's address, so Back, a refresh and a link
+    come back to the same rows. Clear takes it all away.
+  - The database does the narrowing, 50 rows at a time, with a count of what
+    matches over the list ("about 48,000" once it's estimated).
+  - A table on a laptop (40-point rows, column names on the band at the
+    top), Rows on a phone.
+  - **Audit log:** finds an entry number, an account id's start, a notice's
+    title or a reason. Who (You, Someone else, Jonz itself), What (Notices,
+    Accounts), When. An entry's Show more like this narrows the list to the
+    same Who, the same What, or the moments around it.
+  - **Deletions:** finds a name, email, house or account id's start
+    (`owner_deletions_page` and `owner_deletions_count`). Started (In the
+    app, By you), Goes (Within a day, Within a week), and When is Asked.
+    Soonest first, so it doesn't start from a moment.
 
 ## Edge cases
 

@@ -1,4 +1,4 @@
-import { ADMIN_COPY, AUDIT_LIST_COPY, LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
+import { ADMIN_COPY, AUDIT_LIST_COPY, DELETION_LIST_COPY, LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
 import * as Clipboard from 'expo-clipboard';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { useWindowDimensions } from 'react-native';
@@ -9,9 +9,10 @@ import {
   auditPage,
   deleteByEmail,
   deleteNow,
+  deletionsCount,
+  deletionsPage,
   endNotice,
   enrollFactor,
-  ownerDeletions,
   ownerNotices,
   ownerStatus,
   saveNotice,
@@ -40,7 +41,9 @@ jest.mock('@/api/owner', () => ({
   auditCount: jest.fn(),
   auditFilter: jest.requireActual<typeof import('@/api/owner')>('@/api/owner').auditFilter,
   auditEntry: jest.fn(),
-  ownerDeletions: jest.fn(),
+  deletionsPage: jest.fn(),
+  deletionsCount: jest.fn(),
+  deletionFilter: jest.requireActual<typeof import('@/api/owner')>('@/api/owner').deletionFilter,
   deleteNow: jest.fn(),
   stopDeletion: jest.fn(),
   deleteByEmail: jest.fn(),
@@ -133,7 +136,8 @@ beforeEach(() => {
   jest.mocked(auditPage).mockResolvedValue({ entries: [entry(2), entry(1, { before: null, actor: 'someone-else' })], more: false });
   jest.mocked(auditCount).mockResolvedValue(2);
   jest.mocked(auditEntry).mockResolvedValue(entry(2));
-  jest.mocked(ownerDeletions).mockResolvedValue([SAM, KIT]);
+  jest.mocked(deletionsPage).mockResolvedValue({ people: [SAM, KIT], more: false });
+  jest.mocked(deletionsCount).mockResolvedValue(2);
   for (const move of [deleteNow, stopDeletion, deleteByEmail]) jest.mocked(move).mockResolvedValue(undefined);
 });
 
@@ -291,14 +295,55 @@ describe('deletions', () => {
   it('lists who is waiting, their email (a line of its own) and house, and how long is left, with a tab of its own', async () => {
     await renderPages(ROUTES, '/admin/deletions');
     await untilRead();
-    expect(screen.getByText(ADMIN_COPY.deletionsMeta(2))).toBeVisible();
+    expect(screen.getByTestId('deletions-count')).toHaveTextContent(/2 people waiting/);
     expect(screen.getByTestId('deletion-sam')).toHaveTextContent(/Sam.*sam@example\.com\sThe Annexe, asked in the app.*Goes in 28 days/);
     expect(screen.getByTestId('deletion-kit')).toHaveTextContent(/kit@example\.com\sin no house, you started it/);
     expect(screen.getByTestId('admin-tab-deletions')).toBeSelected();
   });
 
+  it('is a busy list: the database finds people by their words, who started it, and how soon it goes', async () => {
+    await renderPages(ROUTES, '/admin/deletions');
+    await untilRead();
+    expect(deletionsPage).toHaveBeenLastCalledWith(null, { q: '', by: null, goes: null, after: null, before: null });
+    const box = screen.getByLabelText(DELETION_LIST_COPY.searchPlaceholder);
+    await fireEvent(box, 'focus');
+    expect(screen.getByTestId('deletions-search-panel')).toHaveTextContent(/Started.*In the app.*By you.*Goes.*Within a day.*Asked.*Today/);
+    await fireEvent.changeText(box, 'emailed');
+    await fireEvent.press(screen.getByTestId('deletions-search-suggestion-by-owner'));
+    await waitFor(() => expect(deletionsPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ by: 'owner', q: '' })));
+    expect(deletionsCount).toHaveBeenLastCalledWith(expect.objectContaining({ by: 'owner' }));
+    await fireEvent.changeText(box, 'kit@');
+    await waitFor(() => expect(deletionsPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ by: 'owner', q: 'kit@' })));
+  });
+
+  it('reads the next 50 from the last one shown, soonest first', async () => {
+    jest.mocked(deletionsPage).mockImplementation(async (after) =>
+      after === null ? { people: [SAM], more: true } : { people: [KIT], more: false },
+    );
+    await renderPages(ROUTES, '/admin/deletions');
+    await untilRead();
+    await fireEvent.scroll(screen.getByTestId('page-scroll'), {
+      nativeEvent: { contentOffset: { y: 300 }, contentSize: { height: 1200 }, layoutMeasurement: { height: 800 } },
+    });
+    await waitFor(() => expect(deletionsPage).toHaveBeenLastCalledWith({ at: SAM.deleteAfter, userId: 'sam' }, expect.anything()));
+    expect(await screen.findByTestId('deletion-kit')).toBeVisible();
+  });
+
+  it('is a table on a laptop, one line a person', async () => {
+    (useWindowDimensions as jest.Mock).mockReturnValue(LAPTOP);
+    await renderPages(ROUTES, '/admin/deletions');
+    await untilRead();
+    expect(screen.getByTestId('deletions-table-head', { includeHiddenElements: true })).toHaveTextContent(
+      /Name.*Email.*House.*Started.*Asked.*Goes/,
+    );
+    expect(screen.getByTestId('deletion-kit')).toHaveTextContent(/Kit.*kit@example\.com.*No house.*By you.*Goes in/);
+    await fireEvent.press(within(screen.getByTestId('deletion-kit')).getByRole('button'));
+    expect(await screen.findByTestId('deletion-sheet')).toBeVisible();
+  });
+
   it('says so when nobody is waiting', async () => {
-    jest.mocked(ownerDeletions).mockResolvedValue([]);
+    jest.mocked(deletionsPage).mockResolvedValue({ people: [], more: false });
+    jest.mocked(deletionsCount).mockResolvedValue(0);
     await renderPages(ROUTES, '/admin/deletions');
     expect(await screen.findByTestId('deletions-empty')).toBeVisible();
     expect(screen.getByText(ADMIN_COPY.noDeletions)).toBeVisible();

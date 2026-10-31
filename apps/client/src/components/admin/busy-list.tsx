@@ -9,6 +9,7 @@ import {
   type ListAsk,
   type ListFacet,
   type ListQuery,
+  type ListWhen,
   type WhenPreset,
 } from '@app/core';
 import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -40,6 +41,8 @@ export interface BusyListSource<T, C> {
   key: readonly unknown[];
   facets: readonly ListFacet[];
   defaultWhen?: WhenPreset;
+  /** What the list calls When (Deletions: Asked), and whether a moment starts it. */
+  when?: ListWhen;
   /** A page of rows after `cursor` (null for the first), narrowed as `ask` says. */
   rows: (cursor: C | null, ask: ListAsk) => Promise<ListPage<T>>;
   /** How many rows match `ask`. */
@@ -89,6 +92,7 @@ export function useBusyList<T, C>(source: BusyListSource<T, C>) {
     show,
     defaultWhen,
     facets: source.facets,
+    when: source.when ?? {},
     list,
     items: list.data?.pages.flatMap((page) => page.items) ?? [],
     count: count.data ?? null,
@@ -129,7 +133,7 @@ export function BusyListView<T>({
   row: (item: T) => ReactNode;
   empty: { icon: LucideIcon; title: string; body: string };
   /** What the foot says is shown, when the count isn't in yet: how far back. */
-  foot: (last: T) => string;
+  foot?: (last: T) => string;
 }) {
   const wide = useColumns();
   const head = (
@@ -141,6 +145,7 @@ export function BusyListView<T>({
         placeholder={placeholder}
         recentKey={`admin-recent-${name}`}
         defaultWhen={busy.defaultWhen}
+        when={busy.when}
         testID={`${name}-search`}
       />
       <View style={styles.count} testID={`${name}-count`}>
@@ -172,7 +177,7 @@ export function BusyListView<T>({
         )}
         <ListFoot
           more={busy.more}
-          shown={busy.count !== null ? LIST_COPY.of(busy.items.length, busy.count) : foot(last)}
+          shown={busy.count !== null ? LIST_COPY.of(busy.items.length, busy.count) : (foot?.(last) ?? null)}
           testID={`${name}-foot`}
         />
       </>

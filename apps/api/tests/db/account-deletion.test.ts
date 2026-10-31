@@ -168,6 +168,49 @@ describe("the owner's Deletions", () => {
     expectDenied(await ben.db.rpc("owner_stop_deletion", { p_user: ava.userId }));
   });
 
+  it("finds who is waiting by their words, who started it and how soon it goes, a page at a time, for the owner only", async () => {
+    const { house, ava, ben, cal } = await avasHouse();
+    await ava.db.rpc("request_account_deletion");
+    await ben.db.rpc("request_account_deletion");
+    const { data: user } = await db.auth.admin.getUserById(cal.userId);
+    expectOk(await owner.db.rpc("owner_request_deletion", { p_email: user.user!.email!, p_reason: "Email of 31 Oct" }));
+    // Ava's goes tomorrow; the others wait out their 30 days.
+    await db.from("account_deletions").update({ delete_after: new Date(Date.now() + DAY / 2).toISOString() }).eq("user_id", ava.userId);
+
+    const count = async (args: Record<string, string>) => (await owner.db.rpc("owner_deletions_count", args)).data;
+    const names = async (args: Record<string, string>) => ((await owner.db.rpc("owner_deletions_page", args)).data ?? []).map((r) => r.name);
+    // This house's people, found by its name, soonest first.
+    const houseName = `Busy ${house.id.slice(0, 8)}`;
+    await db.from("houses").update({ name: houseName }).eq("id", house.id);
+    const ours = { p_q: houseName.toLowerCase() };
+    expect(await names(ours)).toEqual(["Ava", expect.any(String), expect.any(String)]);
+    expect(await count(ours)).toBe(3);
+    expect(await names({ ...ours, p_by: "owner" })).toEqual(["Cal"]);
+    expect(await names({ ...ours, p_by: "self" })).toHaveLength(2);
+    expect(await names({ ...ours, p_goes: "day" })).toEqual(["Ava"]);
+    expect(await count({ ...ours, p_goes: "week" })).toBe(1);
+    expect(await count({ ...ours, p_after: new Date(Date.now() + DAY).toISOString() })).toBe(0);
+    // By an account id's start, or an email, whatever its case; LIKE's wildcards are only letters.
+    expect(await names({ p_q: ben.userId.slice(0, 13) })).toEqual(["Ben"]);
+    expect(await names({ p_q: user.user!.email!.toUpperCase() })).toEqual(["Cal"]);
+    expect(await count({ p_q: "%" })).toBe(0);
+
+    // A page of one, then the next after it.
+    const { data: first } = await owner.db.rpc("owner_deletions_page", { ...ours, p_limit: 1 });
+    const { data: next } = await owner.db.rpc("owner_deletions_page", {
+      ...ours,
+      p_limit: 1,
+      p_cursor_at: first![0].delete_after,
+      p_cursor_user: first![0].user_id,
+    });
+    expect(first!.map((r) => r.name)).toEqual(["Ava"]);
+    expect(next!).toHaveLength(1);
+    expect(next![0].name).not.toBe("Ava");
+
+    expectDenied(await ben.db.rpc("owner_deletions_page", ours));
+    expectDenied(await ben.db.rpc("owner_deletions_count", ours));
+  });
+
   it("brings one forward and stops another, each with its reason in the audit log", async () => {
     const { ava, ben } = await avasHouse();
     await ava.db.rpc("request_account_deletion");

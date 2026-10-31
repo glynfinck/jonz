@@ -8,6 +8,7 @@ import {
   type ListFacet,
   type ListQuery,
   type ListSuggestion,
+  type ListWhen,
   type WhenPreset,
 } from '@app/core';
 import { ClockIcon, HistoryIcon, SearchIcon, TagIcon, XIcon, type LucideIcon } from 'lucide-react-native';
@@ -77,6 +78,7 @@ export function SmartSearch({
   placeholder,
   recentKey,
   defaultWhen = 'any',
+  when = {},
   testID = 'smart-search',
 }: {
   query: ListQuery;
@@ -86,6 +88,8 @@ export function SmartSearch({
   /** Where this list keeps its recent searches on this device. */
   recentKey: string;
   defaultWhen?: WhenPreset;
+  /** What this list calls When, and whether a moment starts it. */
+  when?: ListWhen;
   testID?: string;
 }) {
   const { colors, type } = useTheme();
@@ -112,8 +116,9 @@ export function SmartSearch({
     [],
   );
 
-  const tags = listTags(query, facets, zone, defaultWhen);
-  const suggestions = listSuggestions(text, facets, now, zone).filter((s) =>
+  const whenLabel = when.label ?? 'When';
+  const tags = listTags(query, facets, zone, defaultWhen, whenLabel);
+  const suggestions = listSuggestions(text, facets, now, zone, when).filter((s) =>
     s.kind === 'pick' ? query.picks[s.key] !== s.value : s.kind === 'when' ? query.when !== s.when || query.from !== null : true,
   );
   const recent = text.trim() ? [] : readRecent(recentKey);
@@ -128,7 +133,7 @@ export function SmartSearch({
     onChange(next);
     const params = listQueryToParams(next, defaultWhen);
     if (Object.keys(params).length > 0) {
-      const label = [...listTags(next, facets, zone, defaultWhen).map((tag) => tag.label), ...(next.q ? [`“${next.q}”`] : [])].join(', ');
+      const label = [...listTags(next, facets, zone, defaultWhen, whenLabel).map((tag) => tag.label), ...(next.q ? [`“${next.q}”`] : [])].join(', ');
       keepRecent(recentKey, { params, label });
     }
   }
@@ -195,7 +200,7 @@ export function SmartSearch({
   // With nothing typed: recent searches, then every filter's choices under its name.
   const groups = [
     ...facets.map((facet) => ({ label: facet.label, items: suggestions.filter((s) => s.kind === 'pick' && s.key === facet.key) })),
-    { label: 'When', items: suggestions.filter((s) => s.kind === 'when') },
+    { label: whenLabel, items: suggestions.filter((s) => s.kind === 'when') },
   ].filter((group) => group.items.length > 0);
   const choices = Object.fromEntries(facets.map((facet) => [facet.key, facet.options.map((option) => option.value)]));
 

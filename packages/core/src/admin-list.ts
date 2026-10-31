@@ -319,7 +319,23 @@ export function momentLabel(iso: string, zone: string): string {
  * searching the words themselves. With nothing typed, every filter's
  * choices, so you can see what there is to filter by.
  */
-export function listSuggestions(text: string, facets: readonly ListFacet[], now: Date, zone: string): ListSuggestion[] {
+/**
+ * How a list names When ("Asked" on Deletions, where it's when they asked),
+ * and whether a moment typed in starts the list from it: only a list newest
+ * first can start from a moment.
+ */
+export interface ListWhen {
+  label?: string;
+  moments?: boolean;
+}
+
+export function listSuggestions(
+  text: string,
+  facets: readonly ListFacet[],
+  now: Date,
+  zone: string,
+  { label = "When", moments = true }: ListWhen = {},
+): ListSuggestion[] {
   const tokens = wordsOf(text);
   const out: ListSuggestion[] = [];
   for (const facet of facets) {
@@ -330,11 +346,11 @@ export function listSuggestions(text: string, facets: readonly ListFacet[], now:
     }
   }
   for (const when of ["hour", "today", "week", "month"] as const) {
-    if (tokens.length === 0 || matches(tokens, ["when", ...wordsOf(WHEN_LABEL[when]), ...WHEN_WORDS[when]])) {
-      out.push({ kind: "when", when, label: `When: ${WHEN_LABEL[when]}` });
+    if (tokens.length === 0 || matches(tokens, ["when", ...wordsOf(label, WHEN_LABEL[when]), ...WHEN_WORDS[when]])) {
+      out.push({ kind: "when", when, label: `${label}: ${WHEN_LABEL[when]}` });
     }
   }
-  const moment = text.trim() ? parseMoment(text, now, zone) : null;
+  const moment = moments && text.trim() ? parseMoment(text, now, zone) : null;
   if (moment) out.push({ kind: "from", from: moment.toISOString(), label: `Start from ${momentLabel(moment.toISOString(), zone)}` });
   const words = text.trim().replace(/\s+/g, " ");
   if (words) out.push({ kind: "words", q: words, label: `Search for “${words}”` });
@@ -356,14 +372,20 @@ export function applySuggestion(query: ListQuery, suggestion: ListSuggestion): L
 }
 
 /** The tags in the box, in the filters' order, then When or the moment it starts from. */
-export function listTags(query: ListQuery, facets: readonly ListFacet[], zone: string, defaultWhen: WhenPreset = "any"): ListTag[] {
+export function listTags(
+  query: ListQuery,
+  facets: readonly ListFacet[],
+  zone: string,
+  defaultWhen: WhenPreset = "any",
+  whenLabel = "When",
+): ListTag[] {
   const tags: ListTag[] = [];
   for (const facet of facets) {
     const option = facet.options.find((o) => o.value === query.picks[facet.key]);
     if (option && option !== facet.options[0]) tags.push({ key: facet.key, label: `${facet.label}: ${option.label}` });
   }
   if (query.from) tags.push({ key: "from", label: `From ${momentLabel(query.from, zone)}` });
-  else if (query.when !== defaultWhen && query.when !== "any") tags.push({ key: "when", label: `When: ${WHEN_LABEL[query.when]}` });
+  else if (query.when !== defaultWhen && query.when !== "any") tags.push({ key: "when", label: `${whenLabel}: ${WHEN_LABEL[query.when]}` });
   return tags;
 }
 
@@ -403,3 +425,44 @@ export const AUDIT_FACETS: readonly ListFacet[] = [
     ],
   },
 ];
+
+// --- Deletions' search and filters ------------------------------------------------------
+
+/** Deletions' filters: who started the 30 days, and how soon it goes. */
+export const DELETION_FACETS: readonly ListFacet[] = [
+  {
+    key: "by",
+    label: "Started",
+    options: [
+      { value: "anyone", label: "By anyone" },
+      { value: "self", label: "In the app", words: ["themselves", "user", "app", "asked"] },
+      { value: "owner", label: "By you", words: ["me", "mine", "owner", "email", "emailed"] },
+    ],
+  },
+  {
+    key: "goes",
+    label: "Goes",
+    options: [
+      { value: "any", label: "Any day" },
+      { value: "day", label: "Within a day", words: ["today", "tomorrow", "soon", "24"] },
+      { value: "week", label: "Within a week", words: ["week", "7", "days", "soon"] },
+    ],
+  },
+];
+
+/** On Deletions, When is when they asked; the list goes soonest first, so it doesn't start from a moment. */
+export const DELETION_WHEN: ListWhen = { label: "Asked", moments: false };
+
+export const DELETION_LIST_COPY = {
+  searchPlaceholder: "Name, email, house or account id",
+  count: (count: string) => (count === "1" ? "1 person waiting" : `${count} people waiting`),
+  name: "Name",
+  email: "Email",
+  house: "House",
+  started: "Started",
+  asked: "Asked",
+  goes: "Goes",
+  inTheApp: "In the app",
+  byYou: "By you",
+  noHouse: "No house",
+} as const;

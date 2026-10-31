@@ -237,11 +237,18 @@ function entryFromRow(row: {
 
 // --- Deletions -----------------------------------------------------------------------
 
-/** Everyone waiting to be deleted, soonest first. */
-export async function ownerDeletions(): Promise<PendingDeletion[]> {
-  const { data, error } = await supabase.rpc('owner_deletions');
-  if (error) throw new Error(humanError(error));
-  return (data ?? []).map((row) => ({
+type DeletionRow = {
+  user_id: string;
+  name: string;
+  email: string | null;
+  house_name: string | null;
+  requested_at: string;
+  delete_after: string;
+  requested_by: string;
+};
+
+function deletionFromRow(row: DeletionRow): PendingDeletion {
+  return {
     userId: row.user_id,
     name: row.name,
     email: row.email ?? null,
@@ -249,7 +256,66 @@ export async function ownerDeletions(): Promise<PendingDeletion[]> {
     requestedAt: row.requested_at,
     deleteAfter: row.delete_after,
     requestedBy: row.requested_by === 'owner' ? 'owner' : 'self',
-  }));
+  };
+}
+
+/** What Deletions is narrowed to: the search box's words, who started it, how soon it goes, and when they asked. */
+export interface DeletionFilter {
+  q: string;
+  by: 'self' | 'owner' | null;
+  goes: 'day' | 'week' | null;
+  after: string | null;
+  before: string | null;
+}
+
+/** Deletions' filter from what its search box asks. */
+export function deletionFilter(ask: ListAsk): DeletionFilter {
+  const by = ask.picks.by;
+  const goes = ask.picks.goes;
+  return {
+    q: ask.q,
+    by: by === 'self' || by === 'owner' ? by : null,
+    goes: goes === 'day' || goes === 'week' ? goes : null,
+    after: ask.after,
+    before: ask.before,
+  };
+}
+
+/** Where a page of Deletions starts: after the last one shown, which goes soonest first. */
+export interface DeletionCursor {
+  at: string;
+  userId: string;
+}
+
+const filterArgs = (filter: DeletionFilter) => ({
+  p_q: filter.q,
+  p_by: filter.by ?? undefined,
+  p_goes: filter.goes ?? undefined,
+  p_after: filter.after ?? undefined,
+  p_before: filter.before ?? undefined,
+});
+
+/** A page of who is waiting, soonest first, narrowed by the database. */
+export async function deletionsPage(
+  after: DeletionCursor | null,
+  filter: DeletionFilter,
+): Promise<{ people: PendingDeletion[]; more: boolean }> {
+  const { data, error } = await supabase.rpc('owner_deletions_page', {
+    ...filterArgs(filter),
+    p_cursor_at: after?.at,
+    p_cursor_user: after?.userId,
+    p_limit: PAGE + 1,
+  });
+  if (error) throw new Error(humanError(error));
+  const rows = data ?? [];
+  return { people: rows.slice(0, PAGE).map(deletionFromRow), more: rows.length > PAGE };
+}
+
+/** How many are waiting and match. */
+export async function deletionsCount(filter: DeletionFilter): Promise<number> {
+  const { data, error } = await supabase.rpc('owner_deletions_count', filterArgs(filter));
+  if (error) throw new Error(humanError(error));
+  return Number(data ?? 0);
 }
 
 /** Delete now: the clock takes it within ten minutes. */

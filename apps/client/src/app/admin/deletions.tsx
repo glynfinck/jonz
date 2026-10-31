@@ -1,21 +1,31 @@
-import { ADMIN_COPY, daysUntil, deletionDay, FOCUS_SHELL_COPY, type PendingDeletion } from '@app/core';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ADMIN_COPY,
+  daysUntil,
+  DELETION_FACETS,
+  DELETION_LIST_COPY,
+  DELETION_WHEN,
+  deletionDay,
+  FOCUS_SHELL_COPY,
+  listTime,
+  type PendingDeletion,
+} from '@app/core';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MailIcon, UserXIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { deleteByEmail, deleteNow, ownerDeletions, stopDeletion } from '@/api/owner';
+import { deleteByEmail, deleteNow, deletionFilter, deletionsCount, deletionsPage, stopDeletion, type DeletionCursor } from '@/api/owner';
+import { ownerZone } from '@/components/admin/audit-entry';
+import { BusyListView, useBusyList, type BusyList } from '@/components/admin/busy-list';
+import { ListTableRow, type ListColumn } from '@/components/admin/list-table';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
-import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/field';
-import { ReadFailed, Reading } from '@/components/read-state';
+import { Group } from '@/components/group';
 import { Row, RowIcon } from '@/components/row';
 import { Screen } from '@/components/screen';
-import { Section } from '@/components/section';
 import { Sheet } from '@/components/sheet';
-import { Meta } from '@/components/text';
 import { TitleBar } from '@/components/title-bar';
 import { useToast } from '@/components/toast';
 import { useNow } from '@/hooks/use-now';
@@ -23,62 +33,102 @@ import { SPACE, TABULAR, useTheme } from '@/theme';
 
 const KEY = ['owner-deletions'];
 
+/** Deletions' columns on a laptop. */
+const DELETION_TABLE: readonly ListColumn[] = [
+  { key: 'name', label: DELETION_LIST_COPY.name, width: 150 },
+  { key: 'email', label: DELETION_LIST_COPY.email, flex: 1 },
+  { key: 'house', label: DELETION_LIST_COPY.house, width: 150 },
+  { key: 'started', label: DELETION_LIST_COPY.started, width: 104 },
+  { key: 'asked', label: DELETION_LIST_COPY.asked, width: 144 },
+  { key: 'goes', label: DELETION_LIST_COPY.goes, width: 160, end: true },
+];
+
 /**
- * Everyone waiting to be deleted, soonest first: who, their email (to match
- * a request), their house, and how long is left. Tapping one opens what can
+ * Everyone waiting to be deleted, soonest first, as busy as the list gets:
+ * the one search box finds a name, email, house or account id, and filters
+ * by who started it, how soon it goes and when they asked; the database
+ * does the narrowing, 50 at a time as you scroll. Tapping one opens what can
  * be done: Delete now, when they've asked for it sooner, or Stop, when
- * they've changed their mind by email; each with a reason for the audit log.
- * Under the list, starting the 30 days for someone who emailed and can't
- * sign in. Every move writes the audit log, in the database.
+ * they've changed their mind by email; each with a reason for the audit
+ * log. Over the list, starting the 30 days for someone who emailed and
+ * can't sign in. Every move writes the audit log, in the database.
  */
 export default function DeletionsPage() {
+  const busy = useBusyList({
+    key: KEY,
+    facets: DELETION_FACETS,
+    when: DELETION_WHEN,
+    rows: (cursor: DeletionCursor | null, ask) =>
+      deletionsPage(cursor, deletionFilter(ask)).then((page) => ({ items: page.people, more: page.more })),
+    count: (ask) => deletionsCount(deletionFilter(ask)),
+    cursor: (person: PendingDeletion) => ({ at: person.deleteAfter, userId: person.userId }),
+  });
   return (
-    <Screen bar={<TitleBar title="Deletions" />} testID="admin-deletions">
-      <Deletions />
+    <Screen spreads bar={<TitleBar title="Deletions" />} onNearEnd={busy.onNearEnd} testID="admin-deletions">
+      <Deletions busy={busy} />
     </Screen>
   );
 }
 
-function Deletions() {
+function Deletions({ busy }: { busy: BusyList<PendingDeletion> }) {
   const now = useNow();
-  const waiting = useQuery({ queryKey: KEY, queryFn: ownerDeletions });
   const [chosen, setChosen] = useState<PendingDeletion | null>(null);
   const [byEmail, setByEmail] = useState(false);
-  if (waiting.isPending) return <Reading />;
-  if (waiting.isError) return <ReadFailed onRetry={() => void waiting.refetch()} />;
-
-  const people = waiting.data;
+  const started = (person: PendingDeletion) => (person.requestedBy === 'owner' ? DELETION_LIST_COPY.byYou : DELETION_LIST_COPY.inTheApp);
   return (
     <>
-      {people.length === 0 ? (
-        <EmptyState icon={UserXIcon} title={ADMIN_COPY.noDeletions} body={ADMIN_COPY.noDeletionsBody} testID="deletions-empty" />
-      ) : (
-        <Section label={ADMIN_COPY.waiting} right={ADMIN_COPY.deletionsMeta(people.length)}>
-          {people.map((person) => (
-            <Row
+      <Group>
+        <Row leading={<RowIcon icon={MailIcon} />} title={ADMIN_COPY.byEmail} onPress={() => setByEmail(true)} chevron testID="delete-by-email" />
+      </Group>
+      <BusyListView
+        busy={busy}
+        name="deletions"
+        placeholder={DELETION_LIST_COPY.searchPlaceholder}
+        noun={DELETION_LIST_COPY.count}
+        columns={DELETION_TABLE}
+        tableRow={(person) => {
+          const cells = {
+            name: person.name,
+            email: person.email ?? '–',
+            house: person.house ?? DELETION_LIST_COPY.noHouse,
+            started: started(person),
+            asked: listTime(person.requestedAt, now, ownerZone(), false),
+            goes: ADMIN_COPY.goesIn(daysUntil(person.deleteAfter, now)),
+          };
+          return (
+            <ListTableRow
               key={person.userId}
-              leading={<Avatar name={person.name} userId={person.userId} />}
-              title={person.name}
-              // The email on a line of its own, so a long one is cut at its end rather than broken in two.
-              meta={[
-                person.email,
-                `${person.house ?? ADMIN_COPY.noHouse}, ${person.requestedBy === 'owner' ? ADMIN_COPY.startedByYou : ADMIN_COPY.askedInApp}`,
-              ]
-                .filter(Boolean)
-                .join('\n')}
-              metaLines={2}
-              trailing={<Left iso={person.deleteAfter} now={now} />}
+              columns={DELETION_TABLE}
+              cells={cells}
+              quiet={['email', 'house', 'started', 'asked']}
+              strong={['name']}
               onPress={() => setChosen(person)}
-              chevron
+              accessibilityLabel={Object.values(cells).join(', ')}
               testID={`deletion-${person.userId}`}
             />
-          ))}
-        </Section>
-      )}
-      <Section label={ADMIN_COPY.byEmail}>
-        <Row leading={<RowIcon icon={MailIcon} />} title={ADMIN_COPY.startDeleting} onPress={() => setByEmail(true)} chevron testID="delete-by-email" />
-      </Section>
-      <Meta>{ADMIN_COPY.auditNote}</Meta>
+          );
+        }}
+        row={(person) => (
+          <Row
+            key={person.userId}
+            leading={<Avatar name={person.name} userId={person.userId} />}
+            title={person.name}
+            // The email on a line of its own, so a long one is cut at its end rather than broken in two.
+            meta={[
+              person.email,
+              `${person.house ?? ADMIN_COPY.noHouse}, ${person.requestedBy === 'owner' ? ADMIN_COPY.startedByYou : ADMIN_COPY.askedInApp}`,
+            ]
+              .filter(Boolean)
+              .join('\n')}
+            metaLines={2}
+            trailing={<Left iso={person.deleteAfter} now={now} />}
+            onPress={() => setChosen(person)}
+            chevron
+            testID={`deletion-${person.userId}`}
+          />
+        )}
+        empty={{ icon: UserXIcon, title: ADMIN_COPY.noDeletions, body: ADMIN_COPY.noDeletionsBody }}
+      />
 
       <ChosenSheet key={chosen?.userId ?? 'none'} person={chosen} onClose={() => setChosen(null)} />
       <ByEmailSheet visible={byEmail} onClose={() => setByEmail(false)} />
