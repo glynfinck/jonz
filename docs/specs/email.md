@@ -62,7 +62,7 @@ SVG or our font reliably.
 
 - [x] The look and the first two emails, with tests and previews.
 - [x] Glyn's Resend account, the jonz.app records, `RESEND_API_KEY` on jonz-api, Supabase's SMTP through Resend.
-- [ ] The delete-account flow sends `accountDeletedEmail` (owner admin, PR 2 of that work).
+- [x] The delete-account flow sends `accountDeletedEmail` (`lib/account/deletions.ts`).
 - [x] Supabase's sign-in emails through Resend, in this look (`authEmailTemplates()`, written by provision); email and password sign-in with a 6-digit code for a new account and a reset, and a password from House → You.
 - [ ] A bot check on sign-up (Cloudflare Turnstile) before strangers find the page.
 - [ ] The support@jonz.app inbox, and Privacy and Terms pointing at it.
