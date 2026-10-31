@@ -359,16 +359,20 @@ describe('deletions', () => {
     expect(await screen.findByTestId('deletion-kit')).toBeVisible();
   });
 
-  it('is a table on a laptop, one line a person', async () => {
+  it('is a table on a laptop, one line a person, with what can be done beside it', async () => {
     (useWindowDimensions as jest.Mock).mockReturnValue(LAPTOP);
     await renderPages(ROUTES, '/admin/deletions');
     await untilRead();
-    expect(screen.getByTestId('deletions-table-head', { includeHiddenElements: true })).toHaveTextContent(
-      /Name.*Email.*House.*Started.*Asked.*Goes/,
-    );
-    expect(screen.getByTestId('deletion-kit')).toHaveTextContent(/Kit.*kit@example\.com.*No house.*By you.*Goes in/);
+    expect(screen.getByTestId('deletions-table-head', { includeHiddenElements: true })).toHaveTextContent(/Name.*Email.*House.*Asked.*Goes/);
+    expect(screen.getByTestId('deletion-kit')).toHaveTextContent(/Kit.*kit@example\.com.*No house.*in 28 days/);
+    // Nobody chosen: the side panel starts one for someone who emailed.
+    const side = () => within(screen.getByTestId('column-side'));
+    expect(side().getByTestId('by-email-sheet')).toBeVisible();
+    expect(screen.queryByTestId('delete-by-email')).toBeNull();
     await fireEvent.press(within(screen.getByTestId('deletion-kit')).getByRole('button'));
-    expect(await screen.findByTestId('deletion-sheet')).toBeVisible();
+    expect(await side().findByTestId('deletion-sheet')).toHaveTextContent(/Kit/);
+    await fireEvent.press(side().getByTestId('deletion-close'));
+    expect(await side().findByTestId('by-email-sheet')).toBeVisible();
   });
 
   it('says so when nobody is waiting', async () => {

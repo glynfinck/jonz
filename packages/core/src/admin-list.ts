@@ -465,12 +465,13 @@ export const DELETION_LIST_COPY = {
   name: "Name",
   email: "Email",
   house: "House",
-  started: "Started",
   asked: "Asked",
   goes: "Goes",
   inTheApp: "In the app",
   byYou: "By you",
   noHouse: "No house",
+  /** In the table's Goes column, under its name. */
+  goesShort: (days: number) => (days <= 0 ? "now" : days === 1 ? "tomorrow" : `in ${days} days`),
 } as const;
 
 // --- Notices' search and filters --------------------------------------------------------
