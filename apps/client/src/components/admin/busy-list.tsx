@@ -16,9 +16,9 @@ import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-qu
 import { router, useLocalSearchParams } from 'expo-router';
 import { SearchXIcon, type LucideIcon } from 'lucide-react-native';
 import { useMemo, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { ListTable, type ListColumn } from '@/components/admin/list-table';
+import { ListTable, ListTableHead, type ListColumn } from '@/components/admin/list-table';
 import { SmartSearch } from '@/components/admin/smart-search';
 import { EmptyState } from '@/components/empty-state';
 import { Group } from '@/components/group';
@@ -27,7 +27,7 @@ import { ReadFailed, Reading } from '@/components/read-state';
 import { useColumns } from '@/components/screen';
 import { Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
-import { SPACE } from '@/theme';
+import { SPACE, useTheme } from '@/theme';
 
 /** A page of a busy list, and whether there's another after it. */
 export interface ListPage<T> {
@@ -136,6 +136,11 @@ export function BusyListView<T>({
   foot?: (last: T) => string;
 }) {
   const wide = useColumns();
+  const { colors } = useTheme();
+  // On a laptop the search, the count and the column names stay in view at the top as the rows scroll under them.
+  // Sticky is the web's, as the foot's is.
+  const pinned = wide && Platform.OS === 'web';
+  const table = wide && !busy.list.isPending && !busy.list.isError && busy.items.length > 0;
   const head = (
     <>
       <SmartSearch
@@ -169,7 +174,7 @@ export function BusyListView<T>({
     body = (
       <>
         {wide ? (
-          <ListTable columns={columns} testID={`${name}-table`}>
+          <ListTable columns={columns} head={false} testID={`${name}-table`}>
             {busy.items.map(tableRow)}
           </ListTable>
         ) : (
@@ -185,13 +190,23 @@ export function BusyListView<T>({
   }
   return (
     <View style={styles.list}>
-      {head}
-      {body}
+      <View style={[styles.top, pinned && [STICKY_TOP, { backgroundColor: colors.background }]]} testID={`${name}-top`}>
+        {head}
+        {table ? <ListTableHead columns={columns} testID={`${name}-table-head`} /> : null}
+      </View>
+      {table ? <View style={styles.joined}>{body}</View> : body}
     </View>
   );
 }
 
+// React Native's types stop at absolute; the web's sticky keeps the top in view as the column scrolls.
+const STICKY_TOP = { position: 'sticky', top: 0, zIndex: 1 } as unknown as ViewStyle;
+
 const styles = StyleSheet.create({
   list: { gap: SPACE.sm },
+  // Pinned, it keeps a little room under the title bar; unpinned, the room is taken back above it.
+  top: { gap: SPACE.sm, marginTop: -SPACE.sm, paddingTop: SPACE.sm },
+  // The rows meet the column names square, and the foot keeps its room under them.
+  joined: { marginTop: -SPACE.sm, gap: SPACE.sm },
   count: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACE.md, minHeight: 32 },
 });

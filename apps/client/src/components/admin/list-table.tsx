@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { Group, Hairline } from '@/components/group';
-import { INSET, ROW_GAP, SPACE, TABULAR, useTheme } from '@/theme';
+import { GROUP_RADIUS, INSET, ROW_GAP, SPACE, TABULAR, useTheme } from '@/theme';
 
 /** One of a table's columns: its name, and a fixed width or a share of what's left. */
 export interface ListColumn {
@@ -29,23 +29,45 @@ function cellStyle(column: ListColumn): StyleProp<ViewStyle> {
  * the secondary band at the group's top, hidden from a screen reader, which
  * hears each row whole. On a phone the same list is Rows instead.
  */
-export function ListTable({ columns, children, testID }: { columns: readonly ListColumn[]; children: ReactNode; testID?: string }) {
-  const { colors, type } = useTheme();
+export function ListTable({
+  columns,
+  children,
+  head = true,
+  testID,
+}: {
+  columns: readonly ListColumn[];
+  children: ReactNode;
+  /** False when the names sit apart, in a ListTableHead pinned over the rows: the rows then join it square. */
+  head?: boolean;
+  testID?: string;
+}) {
   return (
-    <Group testID={testID}>
-      <View aria-hidden testID={testID ? `${testID}-head` : undefined} style={[styles.head, { backgroundColor: colors.secondary }]}>
-        {columns.map((column) => (
-          <Text
-            key={column.key}
-            numberOfLines={1}
-            style={[type.caps, styles.caps, cellStyle(column) as StyleProp<TextStyle>, column.end && styles.end]}
-          >
-            {column.label}
-          </Text>
-        ))}
-      </View>
+    <Group testID={testID} style={!head && styles.joined}>
+      {head ? <ListTableHead columns={columns} inside testID={testID ? `${testID}-head` : undefined} /> : null}
       {children}
     </Group>
+  );
+}
+
+/**
+ * A table's column names on their band. Inside the table's group, or on
+ * its own (`inside` false) as the rounded top of a table whose rows follow
+ * square under it, so a busy list can keep the names in view as it scrolls.
+ */
+export function ListTableHead({ columns, inside = false, testID }: { columns: readonly ListColumn[]; inside?: boolean; testID?: string }) {
+  const { colors, type } = useTheme();
+  return (
+    <View aria-hidden testID={testID} style={[styles.head, !inside && styles.top, { backgroundColor: colors.secondary }]}>
+      {columns.map((column) => (
+        <Text
+          key={column.key}
+          numberOfLines={1}
+          style={[type.caps, styles.caps, cellStyle(column) as StyleProp<TextStyle>, column.end && styles.end]}
+        >
+          {column.label}
+        </Text>
+      ))}
+    </View>
   );
 }
 
@@ -121,6 +143,9 @@ export function ListTableRow({
 
 const styles = StyleSheet.create({
   head: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, paddingHorizontal: INSET },
+  // On its own, the band is the table's rounded top; the rows' group meets it square.
+  top: { borderTopLeftRadius: GROUP_RADIUS, borderTopRightRadius: GROUP_RADIUS },
+  joined: { borderTopLeftRadius: 0, borderTopRightRadius: 0 },
   // Overpass's caps sit high in their line, so the names come down a little, as a section's label does.
   caps: { paddingTop: 2 },
   row: { minHeight: DENSE, flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, paddingHorizontal: INSET, paddingVertical: SPACE.xs },

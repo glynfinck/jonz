@@ -1,7 +1,7 @@
 import { ADMIN_COPY, AUDIT_LIST_COPY, DELETION_LIST_COPY, LIST_COPY, NOTICE_LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
 import * as Clipboard from 'expo-clipboard';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
-import { useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions, type ViewStyle } from 'react-native';
 
 import {
   auditCount,
@@ -455,6 +455,27 @@ describe('the audit log', () => {
     expect(screen.getByTestId('audit-detail-2')).toBeVisible();
     await fireEvent.press(screen.getByTestId('audit-row-1'));
     expect(await screen.findByTestId('audit-detail-1')).toBeVisible();
+  });
+
+  it('keeps the search, the count and the column names in view at the top as the rows scroll, on a laptop', async () => {
+    (useWindowDimensions as jest.Mock).mockReturnValue(LAPTOP);
+    const os = Platform.OS;
+    Platform.OS = 'web';
+    try {
+      await renderPages(ROUTES, '/admin/audit');
+      await untilRead();
+      const top = screen.getByTestId('audit-top');
+      // React Native's types stop at absolute; the web's sticky is what pins it.
+      expect(top).toHaveStyle({ position: 'sticky', top: 0 } as unknown as ViewStyle);
+      expect(within(top).getByTestId('audit-search')).toBeVisible();
+      expect(within(top).getByTestId('audit-count')).toHaveTextContent('2 entries');
+      expect(within(top).getByTestId('audit-table-head', { includeHiddenElements: true })).toHaveTextContent(/When.*Who/);
+      // The rows are under it, not in it.
+      expect(within(top).queryByTestId('audit-row-2')).toBeNull();
+      expect(within(screen.getByTestId('audit-table')).getByTestId('audit-row-2')).toBeVisible();
+    } finally {
+      Platform.OS = os;
+    }
   });
 
   it('narrows the list from its address, and the database does the narrowing', async () => {

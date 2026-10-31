@@ -136,7 +136,9 @@ signed out says what goes and stays and signs in on the way back to itself.
   - The database does the narrowing, 50 rows at a time, with a count of what
     matches over the list ("about 48,000" once it's estimated).
   - A table on a laptop (40-point rows, column names on the band at the
-    top), Rows on a phone.
+    top), Rows on a phone. On a laptop the search, the count and the column
+    names stay pinned under the title bar as the rows scroll, and the list
+    and the side panel each scroll on their own.
   - **Audit log:** finds an entry number, an account id's start, a notice's
     title or a reason. Who (You, Someone else, Jonz itself), What (Notices,
     Accounts), When. An entry's Show more like this narrows the list to the
