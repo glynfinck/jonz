@@ -8,6 +8,7 @@ import {
   formatLocalDateTime,
   noticeEndsAt,
   noticeProblems,
+  noticeLine,
   noticeWindow,
   parseLocalDateTime,
   type AuditEntry,
@@ -174,6 +175,16 @@ describe("a notice's window, as its row says it", () => {
   it("says from when for one that starts later, and when it ended for one that's over", () => {
     expect(noticeWindow({ startsAt: at("2026-11-09T08:00:00Z"), endsAt: null }, NOW, "UTC")).toBe("from Mon 9 Nov, 08:00, until you end it");
     expect(noticeWindow({ startsAt: at("2026-11-01T08:00:00Z"), endsAt: at("2026-11-01T10:00:00Z") }, NOW, "UTC")).toBe("ended Sun 1 Nov, 10:00");
+  });
+});
+
+describe("a notice's line in Every notice", () => {
+  it("says whether it's on in the same words as when", () => {
+    expect(noticeLine({ startsAt: "2026-11-02T09:05:00Z", endsAt: null }, NOW, "UTC")).toBe("Showing since Mon 2 Nov, 09:05, until you end it");
+    expect(noticeLine({ startsAt: "2026-11-09T08:00:00Z", endsAt: "2026-11-16T08:00:00Z" }, NOW, "UTC")).toBe(
+      "Starts Mon 9 Nov, 08:00, until Mon 16 Nov, 08:00",
+    );
+    expect(noticeLine({ startsAt: "2026-11-01T08:00:00Z", endsAt: "2026-11-01T10:00:00Z" }, NOW, "UTC")).toBe("Ended Sun 1 Nov, 10:00");
   });
 });
 

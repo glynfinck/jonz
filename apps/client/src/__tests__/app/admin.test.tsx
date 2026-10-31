@@ -238,9 +238,9 @@ describe('notices on a phone', () => {
     expect(await within(screen.getByTestId('what-people-see')).findByText('Jonz is slow right now')).toBeVisible();
     const every = within(screen.getByTestId('notices-every'));
     expect(every.getByTestId('notices-count')).toHaveTextContent(/3 notices/);
-    expect(every.getByTestId('notice-row-n2')).toHaveTextContent(/Starting later/);
-    expect(every.getByTestId('notice-row-n1')).toHaveTextContent(/Showing, since/);
-    expect(every.getByTestId('notice-row-n3')).toHaveTextContent(/Ended, ended/);
+    expect(every.getByTestId('notice-row-n2')).toHaveTextContent(/Starts /);
+    expect(every.getByTestId('notice-row-n1')).toHaveTextContent(/Showing since/);
+    expect(every.getByTestId('notice-row-n3')).toHaveTextContent(/Ended Thu 8 Oct/);
     expect(screen.getByTestId('admin-tabs')).toBeVisible();
     expect(screen.queryByTestId('admin-rail')).toBeNull();
   });

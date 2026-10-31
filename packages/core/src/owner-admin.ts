@@ -196,6 +196,18 @@ export function noticeWindow(notice: { startsAt: string; endsAt: string | null }
   return `${from}, ${end === null ? "until you end it" : `until ${formatWhen(notice.endsAt!, zone)}`}`;
 }
 
+/**
+ * A notice's row in Every notice, saying whether it's on as it says when:
+ * "Showing since Mon 2 Nov, 09:05, until you end it", "Starts Mon 9 Nov,
+ * 08:00, until Mon 16 Nov, 08:00", "Ended Sun 1 Nov, 10:00".
+ */
+export function noticeLine(notice: { startsAt: string; endsAt: string | null }, now: Date, zone?: string): string {
+  const until = notice.endsAt ? `until ${formatWhen(notice.endsAt, zone)}` : "until you end it";
+  if (notice.endsAt && Date.parse(notice.endsAt) <= now.getTime()) return `Ended ${formatWhen(notice.endsAt, zone)}`;
+  if (Date.parse(notice.startsAt) > now.getTime()) return `Starts ${formatWhen(notice.startsAt, zone)}, ${until}`;
+  return `Showing since ${formatWhen(notice.startsAt, zone)}, ${until}`;
+}
+
 // --- The audit log ---------------------------------------------------------------------
 
 export interface AuditEntry {

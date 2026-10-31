@@ -33,6 +33,7 @@ export function Section({
   leading,
   tag,
   right,
+  bare = false,
   children,
   testID,
 }: {
@@ -49,6 +50,8 @@ export function Section({
    * else is a control.
    */
   right?: ReactNode | readonly string[];
+  /** The children sit on the page, not in a card: they bring their own (a busy list, a notice as people see it). */
+  bare?: boolean;
   children: ReactNode;
   testID?: string;
 }) {
@@ -82,7 +85,7 @@ export function Section({
           <View style={styles.control}>{right as ReactNode}</View>
         ) : null}
       </View>
-      <Group>{children}</Group>
+      {bare ? <View style={styles.bare}>{children}</View> : <Group>{children}</Group>}
     </View>
   );
 }
@@ -110,6 +113,7 @@ const styles = StyleSheet.create({
   // foot reaches into the group, so the header is drawn over the group and
   // takes the taps there.
   withControl: { marginBottom: LABEL_GAP, zIndex: 1 },
+  bare: { gap: SPACE.sm },
   // Shrinks only when it can't fit a line on its own.
   label: { minHeight: LINE, flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   // Overpass's caps sit high in their line, so the label comes down a little.

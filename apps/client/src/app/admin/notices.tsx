@@ -5,6 +5,7 @@ import {
   NOTICE_FACETS,
   NOTICE_LIST_COPY,
   NOTICE_WHEN,
+  noticeLine,
   noticeState,
   noticeToShow,
   noticeWindow,
@@ -148,7 +149,7 @@ function NoticeList({ busy, chosen, choose }: { busy: BusyList<Notice>; chosen: 
   const picked = (notice: Notice) => chosen !== null && !isNew(chosen) && chosen.id === notice.id;
   return (
     <>
-      <Section label={ADMIN_COPY.whatPeopleSee} testID="what-people-see">
+      <Section label={ADMIN_COPY.whatPeopleSee} bare testID="what-people-see">
         {showing ? <NoticePreview notice={showing} /> : <Meta>{live.data ? ADMIN_COPY.nothingShowing : ' '}</Meta>}
         <Meta>{ADMIN_COPY.onePerScreen}</Meta>
       </Section>
@@ -156,7 +157,7 @@ function NoticeList({ busy, chosen, choose }: { busy: BusyList<Notice>; chosen: 
       <Section label={ADMIN_COPY.tellEveryone}>
         <StartTiles chosen={isNew(chosen) ? chosen.start : null} onStart={(start) => choose({ start })} />
       </Section>
-      <Section label={NOTICE_LIST_COPY.every} testID="notices-every">
+      <Section label={NOTICE_LIST_COPY.every} bare testID="notices-every">
         <BusyListView
           busy={busy}
           name="notices"
@@ -188,7 +189,7 @@ function NoticeList({ busy, chosen, choose }: { busy: BusyList<Notice>; chosen: 
             <Row
               key={notice.id}
               title={notice.title}
-              meta={`${STATE_LABEL[noticeState(notice, now)]}, ${noticeWindow(notice, now)}`}
+              meta={noticeLine(notice, now)}
               trailing={<Chip label={KIND_LABEL[notice.kind]} tone={notice.kind === 'status' ? 'hazard' : 'quiet'} />}
               tint={picked(notice)}
               chevron
