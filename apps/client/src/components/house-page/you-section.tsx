@@ -1,9 +1,10 @@
-import { dateRange, DELETE_COPY, HOUSE_COPY, HOUSE_LOWER_COPY, LOOK_LABEL, LOOKS, ME_COPY, MOVING_COPY, prefsLine, STEADY_COPY } from '@app/core';
-import { BellIcon, LogOutIcon, SlidersHorizontalIcon, SunMoonIcon, Trash2Icon, TruckIcon } from 'lucide-react-native';
+import { dateRange, DELETE_COPY, EMAIL_SIGN_IN_COPY, emailAuthProblem, HOUSE_COPY, HOUSE_LOWER_COPY, LOOK_LABEL, LOOKS, ME_COPY, MOVING_COPY, PASSWORD_SETTING_COPY, passwordProblem, prefsLine, STEADY_COPY } from '@app/core';
+import { BellIcon, KeyRoundIcon, LogOutIcon, SlidersHorizontalIcon, SunMoonIcon, Trash2Icon, TruckIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { signOut } from '@/api/auth';
+import { emailSignIn, setPassword } from '@/api/email-auth';
 import { renameMe } from '@/api/profile';
 import { reminderSupport, remindersOn } from '@/api/push';
 import { DeleteAccountForm } from '@/components/account/delete-account';
@@ -30,15 +31,18 @@ const LOOK_OPTIONS = LOOKS.map((value) => ({ value, label: LOOK_LABEL[value] }))
  * You: your name (a sheet to change it), reminders on this device (a sheet
  * holding their switch, where there are any to offer), your preferences in
  * this house (their own page; on a laptop it's in the list beside House
- * instead), the look in the row itself, and signing out. Reminders and the
- * look are this device's own. Then Leave: your moving-out date (its own
- * page) and Delete my account, in hazard (a sheet), with a line saying it's
- * on the web too.
+ * instead), the look in the row itself, a password to sign in with by
+ * email (a sheet), and signing out. Reminders and the look are this
+ * device's own. Then Leave: your moving-out date (its own page) and Delete
+ * my account, in hazard (a sheet), with a line saying it's on the web too.
  */
 export function YouSection({ houseId, userId, view }: { houseId: string; userId: string; view: HouseView }) {
   const [look, setLook] = useLook();
   const { colors } = useTheme();
-  const [sheet, setSheet] = useState<'name' | 'reminders' | 'delete' | null>(null);
+  const [sheet, setSheet] = useState<'name' | 'reminders' | 'password' | 'delete' | null>(null);
+  const account = useEmailSignIn(sheet);
+  const email = account?.email ?? null;
+  const hasPassword = account?.hasPassword ?? false;
   // Each opening of the name sheet starts from the name as it is.
   const [opened, setOpened] = useState(0);
   const reminders = useReminderState();
@@ -99,6 +103,19 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
           title={HOUSE_LOWER_COPY.look}
           trailing={<Segmented options={LOOK_OPTIONS} value={look} onChange={setLook} label={ME_COPY.look} testID="look" />}
         />
+        {email ? (
+          <Row
+            leading={<RowIcon icon={KeyRoundIcon} />}
+            title={PASSWORD_SETTING_COPY.label}
+            meta={hasPassword ? PASSWORD_SETTING_COPY.change : PASSWORD_SETTING_COPY.add}
+            onPress={() => {
+              setOpened((n) => n + 1);
+              setSheet('password');
+            }}
+            chevron
+            testID="to-password"
+          />
+        ) : null}
         <Row
           leading={<RowIcon icon={LogOutIcon} />}
           title={HOUSE_LOWER_COPY.signOut}
@@ -147,11 +164,38 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
         {/* The sheet's title says Reminders, so the control doesn't again. */}
         <Reminders userId={userId} labelled={false} />
       </Sheet>
+      {email ? (
+        <PasswordSheet
+          key={`password-${opened}`}
+          visible={sheet === 'password'}
+          email={email}
+          hasPassword={hasPassword}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
       <Sheet visible={sheet === 'delete'} title={DELETE_COPY.title} onClose={() => setSheet(null)} testID="delete-sheet">
         <DeleteAccountForm onKeep={() => setSheet(null)} />
       </Sheet>
     </View>
   );
+}
+
+/** Your sign-in email and whether it has a password, read again whenever a sheet closes. */
+function useEmailSignIn(sheet: string | null) {
+  const [account, setAccount] = useState<{ email: string; hasPassword: boolean } | null>(null);
+  useEffect(() => {
+    if (sheet) return;
+    let active = true;
+    emailSignIn()
+      .then((next) => {
+        if (active) setAccount(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [sheet]);
+  return account;
 }
 
 /** Whether this device offers reminders, and whether they're on now (null until asked). */
@@ -209,6 +253,79 @@ function NameSheet({
         disabled={move.pending || unchanged}
         onPress={() => void save()}
         testID="save-name"
+      />
+    </Sheet>
+  );
+}
+
+/**
+ * A password beside Google, Microsoft or Apple, or a new one: one field and
+ * Save. Supabase holds it; the next sign-in by email uses it.
+ */
+function PasswordSheet({
+  visible,
+  email,
+  hasPassword,
+  onClose,
+}: {
+  visible: boolean;
+  email: string;
+  hasPassword: boolean;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    if (busy) return;
+    const short = passwordProblem(value);
+    if (short) return setProblem(short);
+    setBusy(true);
+    setProblem(null);
+    try {
+      await setPassword(value);
+      setSaved(true);
+      setValue('');
+    } catch (reason) {
+      console.warn('Saving the password failed', reason);
+      setProblem(emailAuthProblem(reason as { code?: string; status?: number }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      visible={visible}
+      title={hasPassword ? PASSWORD_SETTING_COPY.change : PASSWORD_SETTING_COPY.add}
+      onClose={onClose}
+      testID="password-sheet"
+    >
+      <Meta>{hasPassword ? PASSWORD_SETTING_COPY.changeBody(email) : PASSWORD_SETTING_COPY.addBody(email)}</Meta>
+      <Field
+        label={EMAIL_SIGN_IN_COPY.newPassword}
+        hint={EMAIL_SIGN_IN_COPY.passwordHint}
+        value={value}
+        onChangeText={(text) => {
+          setValue(text);
+          setSaved(false);
+        }}
+        secureTextEntry
+        autoCapitalize="none"
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="done"
+        onSubmitEditing={() => void save()}
+        testID="new-password"
+      />
+      {problem ? <Alert message={problem} /> : saved ? <Meta>{PASSWORD_SETTING_COPY.saved}</Meta> : null}
+      <Button
+        label={busy ? PASSWORD_SETTING_COPY.busy : PASSWORD_SETTING_COPY.save}
+        disabled={busy || value.length === 0}
+        onPress={() => void save()}
+        testID="save-password"
       />
     </Sheet>
   );
