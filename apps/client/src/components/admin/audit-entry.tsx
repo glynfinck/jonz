@@ -20,10 +20,11 @@ import { FONT, SPACE, TABULAR, useTheme } from '@/theme';
 
 /** The audit log's columns on a laptop: when, who, what happened (with its detail), and where. */
 export const AUDIT_TABLE: readonly ListColumn[] = [
-  { key: 'when', label: AUDIT_LIST_COPY.when, width: 150 },
-  { key: 'who', label: AUDIT_LIST_COPY.who, width: 150 },
+  // As narrow as "Fri 30 Oct, 21:42", "Someone else" and "Account 5b1e9c40" allow, so what happened has the room.
+  { key: 'when', label: AUDIT_LIST_COPY.when, width: 144 },
+  { key: 'who', label: AUDIT_LIST_COPY.who, width: 112 },
   { key: 'what', label: 'What happened', flex: 1 },
-  { key: 'where', label: 'Where', width: 170 },
+  { key: 'where', label: 'Where', width: 136 },
 ];
 
 /** The owner's zone: an admin list's times and Today are the owner's own. */

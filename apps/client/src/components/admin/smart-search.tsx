@@ -180,10 +180,11 @@ export function SmartSearch({
     }
   }
 
-  const row = (s: ListSuggestion, i: number | null) => (
+  /** A suggestion's row. Under its filter's name, with nothing typed, it's the choice alone: You, under Who. */
+  const row = (s: ListSuggestion, i: number | null, under?: string) => (
     <Row
       key={`${s.kind}-${s.label}`}
-      title={s.label}
+      title={under && s.label.startsWith(`${under}: `) ? s.label.slice(under.length + 2) : s.label}
       leading={<SuggestionIcon icon={ICON[s.kind]} />}
       tint={i !== null && i === lit && Platform.OS === 'web'}
       onPress={() => choose(s)}
@@ -282,7 +283,7 @@ export function SmartSearch({
               ) : null}
               {groups.map((group) => (
                 <Section key={group.label} label={group.label}>
-                  <Group>{group.items.map((s) => row(s, null))}</Group>
+                  <Group>{group.items.map((s) => row(s, null, group.label))}</Group>
                 </Section>
               ))}
             </>
@@ -324,6 +325,8 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   tagText: { fontFamily: FONT.bold, flexShrink: 1 },
-  input: { flexGrow: 1, flexBasis: 120, minHeight: 36, paddingVertical: 0 },
+  // The box draws the focus (two points of ink), so the field inside it draws none of its own on the web
+  // (a browser's `auto` ring ignores its width, hence solid). It fits beside two tags on a phone, and grows.
+  input: { flexGrow: 1, flexBasis: 48, minWidth: 48, minHeight: 36, paddingVertical: 0, outlineStyle: 'solid', outlineWidth: 0 },
   panel: { gap: SPACE.lg },
 });
