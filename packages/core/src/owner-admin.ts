@@ -33,10 +33,6 @@ export const ADMIN_COPY = {
   added: "Check the code",
   wrongCode: "That code didn’t work. Codes change every 30 seconds, so try the newest one.",
   // Notices.
-  noticesMeta: (showing: number, later: number) =>
-    [showing === 0 ? "Nothing showing" : `${showing} showing`, later > 0 ? `${later} starting later` : null]
-      .filter(Boolean)
-      .join(", "),
   tellEveryone: "Tell everyone",
   /** The ways in to a new notice, named by what's happening, outages first. */
   start: {
@@ -68,9 +64,6 @@ export const ADMIN_COPY = {
   ended: "Ended.",
   copyFailed: "Saved, but the copy for outages didn’t update. Save again to retry.",
   auditNote: "Saving writes to the audit log with your name.",
-  showing: "Showing",
-  startingLater: "Starting later",
-  endedCount: (count: number) => `${count} ended`,
   noNotices: "No notices yet",
   noNoticesBody: "A notice shows at the top of the app for everyone: an outage, an offer or news.",
   // The audit log.
@@ -87,11 +80,9 @@ export const ADMIN_COPY = {
   openNotice: "Open the notice",
   noEntry: "That entry isn’t in the log.",
   // Deletions.
-  deletionsMeta: (count: number) => (count === 0 ? "Nobody waiting" : `${count} waiting`),
   noDeletions: "Nobody is waiting to be deleted",
   noDeletionsBody:
     "When someone deletes their account it waits here for 30 days, in case they change their mind. Signing in again and pressing Keep my account stops it.",
-  waiting: "Waiting",
   goesIn: (days: number) => (days <= 0 ? "Goes within 10 minutes" : days === 1 ? "Goes tomorrow" : `Goes in ${days} days`),
   askedInApp: "asked in the app",
   startedByYou: "you started it",

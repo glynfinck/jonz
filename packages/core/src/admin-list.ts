@@ -165,6 +165,18 @@ export const AUDIT_LIST_COPY = {
 /** What each What reads: the start of the entries' action. */
 export const AUDIT_WHAT_ACTION: Record<AuditWhat, string | null> = { anything: null, notices: "notice.", accounts: "account." };
 
+/** What was typed, kept to letters, digits, spaces and @ . _ ' -, so nothing typed can change a filter itself. */
+function searchWords(q: string): string {
+  return q
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N} @._'-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+}
+
+const like = (column: string, pattern: string) => `${column}.ilike."${pattern}"`;
+
 /**
  * The search box's words as the database's `or` filter: an entry number
  * finds that entry (and any account id starting with those digits); words
@@ -174,14 +186,8 @@ export const AUDIT_WHAT_ACTION: Record<AuditWhat, string | null> = { anything: n
  * nothing to search for.
  */
 export function auditSearchFilter(q: string): string | null {
-  const words = q
-    .normalize("NFKC")
-    .replace(/[^\p{L}\p{N} @._'-]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 100);
+  const words = searchWords(q);
   if (!words) return null;
-  const like = (column: string, pattern: string) => `${column}.ilike."${pattern}"`;
   if (/^#?\d{1,15}$/.test(words)) {
     const id = words.replace("#", "");
     return [`id.eq.${id}`, like("target_id", `${id}*`)].join(",");
@@ -466,3 +472,52 @@ export const DELETION_LIST_COPY = {
   byYou: "By you",
   noHouse: "No house",
 } as const;
+
+// --- Notices' search and filters --------------------------------------------------------
+
+/** The search box's words as the database's `or` filter on notices: a title or body that has them. */
+export function noticeSearchFilter(q: string): string | null {
+  const words = searchWords(q);
+  if (!words) return null;
+  return [like("title", `*${words}*`), like("body", `*${words}*`)].join(",");
+}
+
+/** Notices' filters: what kind, and whether it's showing, starting later or over. */
+export const NOTICE_FACETS: readonly ListFacet[] = [
+  {
+    key: "kind",
+    label: "Kind",
+    options: [
+      { value: "any", label: "Any kind" },
+      { value: "status", label: "Something’s wrong", words: ["status", "outage", "down", "problem", "broken"] },
+      { value: "offer", label: "Offers", words: ["offer", "deal", "price", "sale"] },
+      { value: "news", label: "News", words: ["news", "update"] },
+    ],
+  },
+  {
+    key: "state",
+    label: "State",
+    options: [
+      { value: "any", label: "Any" },
+      { value: "live", label: "Showing", words: ["on", "now", "live", "current"] },
+      { value: "scheduled", label: "Starting later", words: ["later", "future", "scheduled", "soon"] },
+      { value: "ended", label: "Ended", words: ["over", "off", "past", "old", "finished"] },
+    ],
+  },
+];
+
+/** On Notices, When is when a notice started. */
+export const NOTICE_WHEN: ListWhen = { label: "Started" };
+
+export const NOTICE_LIST_COPY = {
+  every: "Every notice",
+  searchPlaceholder: "Words in a notice",
+  count: (count: string) => (count === "1" ? "1 notice" : `${count} notices`),
+  title: "Notice",
+  kind: "Kind",
+  state: "State",
+  starts: "Starts",
+  ends: "Ends",
+  untilEnded: "Until you end it",
+} as const;
+

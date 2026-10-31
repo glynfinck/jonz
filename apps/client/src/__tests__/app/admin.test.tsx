@@ -1,4 +1,4 @@
-import { ADMIN_COPY, AUDIT_LIST_COPY, DELETION_LIST_COPY, LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
+import { ADMIN_COPY, AUDIT_LIST_COPY, DELETION_LIST_COPY, LIST_COPY, NOTICE_LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
 import * as Clipboard from 'expo-clipboard';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { useWindowDimensions } from 'react-native';
@@ -13,7 +13,9 @@ import {
   deletionsPage,
   endNotice,
   enrollFactor,
-  ownerNotices,
+  liveNotices,
+  noticesCount,
+  noticesPage,
   ownerStatus,
   saveNotice,
   stopDeletion,
@@ -34,7 +36,10 @@ jest.mock('@/api/owner', () => ({
   verifiedFactor: jest.fn(),
   enrollFactor: jest.fn(),
   checkCode: jest.fn(),
-  ownerNotices: jest.fn(),
+  liveNotices: jest.fn(),
+  noticesPage: jest.fn(),
+  noticesCount: jest.fn(),
+  noticeFilter: jest.requireActual<typeof import('@/api/owner')>('@/api/owner').noticeFilter,
   saveNotice: jest.fn(),
   endNotice: jest.fn(),
   auditPage: jest.fn(),
@@ -130,7 +135,9 @@ const ROUTES = {
 beforeEach(() => {
   (useWindowDimensions as jest.Mock).mockReturnValue(PHONE);
   jest.mocked(ownerStatus).mockResolvedValue({ owner: true, mfa: true });
-  jest.mocked(ownerNotices).mockResolvedValue([SLOW, LATER, OLD]);
+  jest.mocked(liveNotices).mockResolvedValue([SLOW]);
+  jest.mocked(noticesPage).mockResolvedValue({ notices: [LATER, SLOW, OLD], more: false });
+  jest.mocked(noticesCount).mockResolvedValue(3);
   jest.mocked(saveNotice).mockResolvedValue({ id: 'n9', copied: true });
   jest.mocked(endNotice).mockResolvedValue({ copied: true });
   jest.mocked(auditPage).mockResolvedValue({ entries: [entry(2), entry(1, { before: null, actor: 'someone-else' })], more: false });
@@ -158,7 +165,8 @@ describe('who gets in', () => {
     jest.mocked(ownerStatus).mockResolvedValue({ owner: false, mfa: true });
     await renderPages(ROUTES, '/admin/notices');
     expect(await screen.findByText(NOT_FOUND_COPY.title)).toBeVisible();
-    expect(ownerNotices).not.toHaveBeenCalled();
+    expect(noticesPage).not.toHaveBeenCalled();
+    expect(liveNotices).not.toHaveBeenCalled();
   });
 
   it('asks the owner for their code before anything else', async () => {
@@ -167,7 +175,8 @@ describe('who gets in', () => {
     await renderPages(ROUTES, '/admin/notices');
     expect(await screen.findByTestId('code-gate')).toBeVisible();
     expect(screen.getByText(ADMIN_COPY.codeTitle)).toBeVisible();
-    expect(ownerNotices).not.toHaveBeenCalled();
+    expect(noticesPage).not.toHaveBeenCalled();
+    expect(liveNotices).not.toHaveBeenCalled();
   });
 
   it('adds the authenticator the first time: Supabase’s QR code drawn to fit its square, and the key to type', async () => {
@@ -223,15 +232,34 @@ describe('who gets in', () => {
 });
 
 describe('notices on a phone', () => {
-  it('shows what people see now, then each notice by whether it is showing, later or over, with tabs at the bottom', async () => {
+  it('shows what people see now, then every notice newest first, each saying whether it is showing, later or over, with tabs at the bottom', async () => {
     await renderPages(ROUTES, '/admin/notices');
     await untilRead();
-    expect(within(screen.getByTestId('what-people-see')).getByText('Jonz is slow right now')).toBeVisible();
-    expect(within(screen.getByTestId('notices-showing')).getByTestId('notice-row-n1')).toBeVisible();
-    expect(within(screen.getByTestId('notices-later')).getByTestId('notice-row-n2')).toBeVisible();
-    expect(screen.getByText(ADMIN_COPY.endedCount(1))).toBeVisible();
+    expect(await within(screen.getByTestId('what-people-see')).findByText('Jonz is slow right now')).toBeVisible();
+    const every = within(screen.getByTestId('notices-every'));
+    expect(every.getByTestId('notices-count')).toHaveTextContent(/3 notices/);
+    expect(every.getByTestId('notice-row-n2')).toHaveTextContent(/Starting later/);
+    expect(every.getByTestId('notice-row-n1')).toHaveTextContent(/Showing, since/);
+    expect(every.getByTestId('notice-row-n3')).toHaveTextContent(/Ended, ended/);
     expect(screen.getByTestId('admin-tabs')).toBeVisible();
     expect(screen.queryByTestId('admin-rail')).toBeNull();
+  });
+
+  it('narrows every notice from the search box, by kind, state or words', async () => {
+    await renderPages(ROUTES, '/admin/notices');
+    await untilRead();
+    expect(noticesPage).toHaveBeenLastCalledWith(null, { q: '', kind: null, state: null, after: null, before: null });
+    const box = screen.getByLabelText(NOTICE_LIST_COPY.searchPlaceholder);
+    await fireEvent(box, 'focus');
+    await fireEvent.changeText(box, 'over');
+    await fireEvent.press(screen.getByTestId('notices-search-suggestion-state-ended'));
+    await waitFor(() => expect(noticesPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ state: 'ended', q: '' })));
+    await fireEvent.changeText(box, 'outage');
+    await fireEvent.press(screen.getByTestId('notices-search-suggestion-kind-status'));
+    await waitFor(() => expect(noticesPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ state: 'ended', kind: 'status' })));
+    expect(noticesCount).toHaveBeenLastCalledWith(expect.objectContaining({ state: 'ended', kind: 'status' }));
+    // What people see doesn't follow the list.
+    expect(within(screen.getByTestId('what-people-see')).getByText('Jonz is slow right now')).toBeVisible();
   });
 
   it('edits a notice in a sheet, and ends it', async () => {
@@ -286,7 +314,9 @@ describe('notices on a laptop', () => {
     expect(screen.queryByTestId('admin-tabs')).toBeNull();
     const side = screen.getByTestId('notice-side');
     expect(within(side).getByText(ADMIN_COPY.start.status.title)).toBeVisible();
-    await fireEvent.press(screen.getByTestId('notice-row-n2'));
+    expect(screen.getByTestId('notices-table-head', { includeHiddenElements: true })).toHaveTextContent(/Notice.*Kind.*State.*Starts/);
+    expect(screen.getByTestId('notice-row-n1')).toHaveTextContent(/Jonz is slow right now.*Status.*Showing/);
+    await fireEvent.press(within(screen.getByTestId('notice-row-n2')).getByRole('button'));
     expect(await within(screen.getByTestId('notice-side')).findByDisplayValue('Jonz is on iPhone and Android')).toBeVisible();
   });
 });

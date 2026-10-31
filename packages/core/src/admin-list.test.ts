@@ -8,6 +8,8 @@ import {
   auditLikeThis,
   DELETION_FACETS,
   DELETION_WHEN,
+  NOTICE_FACETS,
+  noticeSearchFilter,
   facetChoices,
   listAsk,
   dropTag,
@@ -279,3 +281,18 @@ describe("Deletions' search box", () => {
     ]);
   });
 });
+
+describe("Notices' search box", () => {
+  it("finds words in a notice's title or body, and nothing that could change the filter", () => {
+    expect(noticeSearchFilter("slow")).toBe('title.ilike."*slow*",body.ilike."*slow*"');
+    expect(noticeSearchFilter('a"),id.eq.(1')).toBe('title.ilike."*a id.eq. 1*",body.ilike."*a id.eq. 1*"');
+    expect(noticeSearchFilter("  ")).toBeNull();
+  });
+
+  it("turns words into a kind or a state", () => {
+    const labels = (text: string) => listSuggestions(text, NOTICE_FACETS, NOW, ZONE).map((s) => s.label);
+    expect(labels("outage")).toEqual(["Kind: Something’s wrong", "Search for “outage”"]);
+    expect(labels("ended")).toEqual(["State: Ended", "Search for “ended”"]);
+  });
+});
+

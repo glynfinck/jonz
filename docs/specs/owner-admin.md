@@ -145,6 +145,10 @@ signed out says what goes and stays and signs in on the way back to itself.
     (`owner_deletions_page` and `owner_deletions_count`). Started (In the
     app, By you), Goes (Within a day, Within a week), and When is Asked.
     Soonest first, so it doesn't start from a moment.
+  - **Notices:** What people see now and the tiles that start one stay at the
+    top; under them, Every notice, newest start first. Finds words in a title
+    or body. Kind (Something's wrong, Offers, News), State (Showing, Starting
+    later, Ended), and When is Started.
 
 ## Edge cases
 

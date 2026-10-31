@@ -2,13 +2,16 @@ import {
   AUDIT_WHAT_ACTION,
   auditSearchFilter,
   humanError,
+  NOTICE_KINDS,
   noticeFromRow,
+  noticeSearchFilter,
   qrShape,
   type AuditEntry,
   type AuditWhat,
   type AuditWho,
   type ListAsk,
   type Notice,
+  type NoticeKind,
   type PendingDeletion,
   type QrShape,
 } from '@app/core';
@@ -68,15 +71,106 @@ export async function checkCode(factorId: string, code: string): Promise<boolean
   return !error;
 }
 
-/** Every notice, on or not: the owner reads them all. */
-export async function ownerNotices(): Promise<Notice[]> {
+/** Every admin list reads this many at a time (and one more, to know there's another page). */
+const PAGE = 50;
+const NOTICE_COLUMNS = 'id, kind, title, body, link_label, link_url, starts_at, ends_at';
+
+/** The notices on now, for What people see: never more than a handful. */
+export async function liveNotices(now: Date = new Date()): Promise<Notice[]> {
+  const at = now.toISOString();
   const { data, error } = await supabase
     .from('notices')
-    .select('id, kind, title, body, link_label, link_url, starts_at, ends_at')
+    .select(NOTICE_COLUMNS)
+    .lte('starts_at', at)
+    .or(`ends_at.is.null,ends_at.gt."${at}"`)
     .order('starts_at', { ascending: false })
-    .limit(100);
+    .limit(50);
   if (error) throw new Error(humanError(error));
   return data.map(noticeFromRow).filter((notice): notice is Notice => notice !== null);
+}
+
+/** What Every notice is narrowed to: the search box's words, a kind, a state, and when it started. */
+export interface NoticeFilter {
+  q: string;
+  kind: NoticeKind | null;
+  state: 'live' | 'scheduled' | 'ended' | null;
+  after: string | null;
+  before: string | null;
+}
+
+/** Notices' filter from what its search box asks. */
+export function noticeFilter(ask: ListAsk): NoticeFilter {
+  const { kind, state } = ask.picks;
+  return {
+    q: ask.q,
+    kind: (NOTICE_KINDS as readonly string[]).includes(kind ?? '') ? (kind as NoticeKind) : null,
+    state: state === 'live' || state === 'scheduled' || state === 'ended' ? state : null,
+    after: ask.after,
+    before: ask.before,
+  };
+}
+
+/** Where a page of notices starts: after the last one shown, newest start first. */
+export interface NoticeCursor {
+  at: string;
+  id: string;
+}
+
+/**
+ * The database narrows the notices. PostgREST takes one `or`, so the
+ * groups that need one (Showing, the words, where the page starts) go in
+ * together under `and`.
+ */
+function narrowedNotices<T extends NoticeNarrowable<T>>(query: T, filter: NoticeFilter, now: Date, after: NoticeCursor | null = null): T {
+  const at = `"${now.toISOString()}"`;
+  let narrow = query;
+  const ors: string[] = [];
+  if (filter.kind) narrow = narrow.eq('kind', filter.kind);
+  if (filter.state === 'scheduled') narrow = narrow.gt('starts_at', now.toISOString());
+  if (filter.state === 'live') {
+    narrow = narrow.lte('starts_at', now.toISOString());
+    ors.push(`ends_at.is.null,ends_at.gt.${at}`);
+  }
+  if (filter.state === 'ended') narrow = narrow.lte('ends_at', now.toISOString());
+  if (filter.after) narrow = narrow.gt('starts_at', filter.after);
+  if (filter.before) narrow = narrow.lte('starts_at', filter.before);
+  const search = noticeSearchFilter(filter.q);
+  if (search) ors.push(search);
+  if (after) ors.push(`starts_at.lt."${after.at}",and(starts_at.eq."${after.at}",id.lt.${after.id})`);
+  if (ors.length === 1) narrow = narrow.or(ors[0]);
+  if (ors.length > 1) narrow = narrow.or(`and(${ors.map((group) => `or(${group})`).join(',')})`);
+  return narrow;
+}
+
+interface NoticeNarrowable<T> {
+  eq(column: string, value: unknown): T;
+  gt(column: string, value: unknown): T;
+  lte(column: string, value: unknown): T;
+  or(filters: string): T;
+}
+
+/** A page of every notice, newest start first, narrowed by the database. */
+export async function noticesPage(
+  after: NoticeCursor | null,
+  filter: NoticeFilter,
+  now: Date = new Date(),
+): Promise<{ notices: Notice[]; more: boolean }> {
+  const { data, error } = await narrowedNotices(supabase.from('notices').select(NOTICE_COLUMNS), filter, now, after)
+    .order('starts_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(PAGE + 1);
+  if (error) throw new Error(humanError(error));
+  return {
+    notices: data.slice(0, PAGE).map(noticeFromRow).filter((notice): notice is Notice => notice !== null),
+    more: data.length > PAGE,
+  };
+}
+
+/** How many notices match. */
+export async function noticesCount(filter: NoticeFilter, now: Date = new Date()): Promise<number> {
+  const { count, error } = await narrowedNotices(supabase.from('notices').select('id', { count: 'exact', head: true }), filter, now);
+  if (error) throw new Error(humanError(error));
+  return count ?? 0;
 }
 
 export interface SavedNotice {
@@ -126,7 +220,6 @@ async function refreshCopy(): Promise<boolean> {
   }
 }
 
-const PAGE = 50;
 const AUDIT_COLUMNS = 'id, at, actor, action, target_kind, target_id, reason, before, after';
 
 /** What the audit log is narrowed to: the search box, Who (with whose account "You" is), What, and When's window. */
