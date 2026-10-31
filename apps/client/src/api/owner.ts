@@ -7,6 +7,7 @@ import {
   type AuditEntry,
   type AuditWhat,
   type AuditWho,
+  type ListAsk,
   type Notice,
   type PendingDeletion,
   type QrShape,
@@ -139,6 +140,18 @@ export interface AuditFilter {
 }
 
 export const ALL_OF_THE_AUDIT: AuditFilter = { q: '', who: 'anyone', what: 'anything', ownerId: null, after: null, before: null };
+
+/** The audit log's filter from what its search box asks, with whose account "You" is. */
+export function auditFilter(ask: ListAsk, ownerId: string | null): AuditFilter {
+  return {
+    q: ask.q,
+    who: (ask.picks.who ?? 'anyone') as AuditWho,
+    what: (ask.picks.what ?? 'anything') as AuditWhat,
+    ownerId,
+    after: ask.after,
+    before: ask.before,
+  };
+}
 
 /** The filter methods both of the audit log's reads share, whatever they select. */
 interface Narrowable<T> {

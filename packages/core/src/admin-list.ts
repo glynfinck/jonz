@@ -1,9 +1,9 @@
-import { tz } from "@date-fns/tz";
+import { TZDate, tz } from "@date-fns/tz";
 import { format, startOfDay } from "date-fns";
 
 /**
  * How every owner admin list is searched and filtered, the same on every
- * page: one search box, up to three drop-downs in a fixed order, and When.
+ * page: one search box, with the page's filters (and When) as tags in it.
  * The page keeps what's set in its address, so Back, a refresh and a
  * bookmark all come back to the same rows. The server does the searching
  * and the filtering; these only say what was asked for.
@@ -61,6 +61,17 @@ export function listWindow(query: Pick<ListQuery, "when" | "from">, now: Date, z
   }
 }
 
+/** What a list's reads are asked: the words, each filter's choice, and When's window, fixed at the moment it was asked. */
+export interface ListAsk extends ListWindow {
+  q: string;
+  picks: Record<string, string>;
+}
+
+/** A query made concrete: When's window from the moment it was asked, so scrolling on doesn't move it. */
+export function listAsk(query: ListQuery, asked: Date, zone: string): ListAsk {
+  return { q: query.q.trim(), picks: query.picks, ...listWindow(query, asked, zone) };
+}
+
 /**
  * A row's time: "16:41:07" today (or "16:41" where seconds won't fit),
  * "Thu 29 Oct, 23:58" before today. No day headings: in a busy list a day
@@ -91,7 +102,8 @@ export function listQueryFromParams(
   const picks: Record<string, string> = {};
   for (const [key, choices] of Object.entries(dropDowns)) {
     const pick = one(params[key]);
-    if (pick && choices.includes(pick)) picks[key] = pick;
+    // The first choice is no filter at all (Anyone), so it isn't kept.
+    if (pick && pick !== choices[0] && choices.includes(pick)) picks[key] = pick;
   }
   const when = one(params.when);
   const from = one(params.from);
@@ -132,9 +144,6 @@ export type AuditWho = (typeof AUDIT_WHO)[number];
 export const AUDIT_WHAT = ["anything", "notices", "accounts"] as const;
 export type AuditWhat = (typeof AUDIT_WHAT)[number];
 
-/** The audit log's drop-downs, in their order: Who, What (When is every list's). */
-export const AUDIT_DROPDOWNS = { who: AUDIT_WHO, what: AUDIT_WHAT } as const;
-
 export const AUDIT_LIST_COPY = {
   search: "Search",
   searchPlaceholder: "Entry number, account id or words",
@@ -144,9 +153,6 @@ export const AUDIT_LIST_COPY = {
   whoLabel: { anyone: "Anyone", you: "You", others: "Someone else", jonz: "Jonz itself" } satisfies Record<AuditWho, string>,
   whatLabel: { anything: "Anything", notices: "Notices", accounts: "Accounts" } satisfies Record<AuditWhat, string>,
   count: (count: string) => (count === "1" ? "1 entry" : `${count} entries`),
-  noMatch: "Nothing matches",
-  noMatchBody: "Try other words, or clear the filters.",
-  clear: "Clear",
   likeThis: "Show more like this",
   byYou: "Everything you did",
   byThem: "Everything by someone else",
@@ -213,3 +219,187 @@ export function auditLikeThis(entry: { actor: string | null; action: string; at:
   like.push({ label: AUDIT_LIST_COPY.around, meta: AUDIT_LIST_COPY.aroundMeta, params: { from } });
   return like;
 }
+
+// --- One smart search box ---------------------------------------------------------------
+
+/**
+ * A filter the search box can turn words into: Who, What, and so on. Its
+ * first option is no filter at all (Anyone, Anything), so it is never a
+ * tag. `words` are other words that find an option ("me" finds You).
+ */
+export interface ListFacet {
+  key: string;
+  label: string;
+  options: readonly { value: string; label: string; words?: readonly string[] }[];
+}
+
+/** What a suggestion under the box does when it's chosen. */
+export type ListSuggestion =
+  | { kind: "pick"; key: string; value: string; label: string }
+  | { kind: "when"; when: WhenPreset; label: string }
+  | { kind: "from"; from: string; label: string }
+  | { kind: "words"; q: string; label: string };
+
+/** A tag in the box: what's set, and the key that takes it away. */
+export interface ListTag {
+  key: string;
+  label: string;
+}
+
+const WHEN_WORDS: Record<Exclude<WhenPreset, "any">, readonly string[]> = {
+  hour: ["last", "hour", "60", "minutes"],
+  today: ["today", "day"],
+  week: ["last", "7", "days", "week"],
+  month: ["last", "30", "days", "month"],
+};
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** Every typed word starts one of the candidate's words. */
+function matches(tokens: readonly string[], words: readonly string[]): boolean {
+  return tokens.every((token) => words.some((word) => word.startsWith(token)));
+}
+
+const wordsOf = (...texts: readonly string[]) =>
+  texts.flatMap((text) => text.toLowerCase().split(/[^\p{L}\p{N}]+/u)).filter(Boolean);
+
+/**
+ * A moment typed into the box, in your zone: "23:30" (today), "yesterday"
+ * or "yesterday 18:00", "29 oct" or "oct 29" (this year, or last if that's
+ * still to come) with or without a time, or "2026-10-29 23:30". A day
+ * without a time means its end, so the list starts with that day's last
+ * entry. Null for anything else, or a moment still to come.
+ */
+export function parseMoment(text: string, now: Date, zone: string): Date | null {
+  const t = text.trim().toLowerCase().replace(/\s+/g, " ");
+  const today = format(now, "yyyy-MM-dd", { in: tz(zone) }).split("-").map(Number);
+  const at = (y: number, m: number, d: number, time?: string[]) => {
+    const h = time ? Number(time[0]) : 23;
+    const mi = time ? Number(time[1]) : 59;
+    if (m < 0 || m > 11 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+    const moment = new TZDate(y, m, d, h, mi, time ? 0 : 59, zone);
+    if (moment.getDate() !== d) return null;
+    return new Date(moment.getTime());
+  };
+  const clock = (s: string | undefined) => (s ? s.split(":") : undefined);
+  let found: Date | null = null;
+  let match: RegExpMatchArray | null;
+  if ((match = t.match(/^(\d{1,2}:\d{2})$/))) found = at(today[0], today[1] - 1, today[2], clock(match[1]));
+  else if ((match = t.match(/^yesterday(?: (\d{1,2}:\d{2}))?$/))) {
+    const y = new Date(Date.UTC(today[0], today[1] - 1, today[2] - 1));
+    found = at(y.getUTCFullYear(), y.getUTCMonth(), y.getUTCDate(), clock(match[1]));
+  } else if ((match = t.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ t](\d{1,2}:\d{2}))?$/)))
+    found = at(Number(match[1]), Number(match[2]) - 1, Number(match[3]), clock(match[4]));
+  else {
+    const dayFirst = t.match(/^(\d{1,2}) ([a-z]{3})[a-z]*(?: (\d{1,2}:\d{2}))?$/);
+    const monthFirst = t.match(/^([a-z]{3})[a-z]* (\d{1,2})(?: (\d{1,2}:\d{2}))?$/);
+    const [day, month, time] = dayFirst
+      ? [Number(dayFirst[1]), dayFirst[2], dayFirst[3]]
+      : monthFirst
+        ? [Number(monthFirst[2]), monthFirst[1], monthFirst[3]]
+        : [0, "", undefined];
+    const m = MONTHS.indexOf(month);
+    if (m >= 0) {
+      found = at(today[0], m, day, clock(time));
+      if (found && found > now) found = at(today[0] - 1, m, day, clock(time));
+    }
+  }
+  return found && found <= now ? found : null;
+}
+
+/** A moment as a tag or a suggestion says it: "Thu 29 Oct, 23:30". */
+export function momentLabel(iso: string, zone: string): string {
+  return format(new Date(iso), "EEE d MMM, HH:mm", { in: tz(zone) });
+}
+
+/**
+ * What the box offers for what's typed, best first: the filters whose
+ * names or choices the words start (who → every Who; "me" → Who: You;
+ * "del" → What: Accounts), When's spans, a moment to start from, and last,
+ * searching the words themselves. With nothing typed, every filter's
+ * choices, so you can see what there is to filter by.
+ */
+export function listSuggestions(text: string, facets: readonly ListFacet[], now: Date, zone: string): ListSuggestion[] {
+  const tokens = wordsOf(text);
+  const out: ListSuggestion[] = [];
+  for (const facet of facets) {
+    for (const option of facet.options.slice(1)) {
+      if (tokens.length === 0 || matches(tokens, wordsOf(facet.label, option.label, ...(option.words ?? [])))) {
+        out.push({ kind: "pick", key: facet.key, value: option.value, label: `${facet.label}: ${option.label}` });
+      }
+    }
+  }
+  for (const when of ["hour", "today", "week", "month"] as const) {
+    if (tokens.length === 0 || matches(tokens, ["when", ...wordsOf(WHEN_LABEL[when]), ...WHEN_WORDS[when]])) {
+      out.push({ kind: "when", when, label: `When: ${WHEN_LABEL[when]}` });
+    }
+  }
+  const moment = text.trim() ? parseMoment(text, now, zone) : null;
+  if (moment) out.push({ kind: "from", from: moment.toISOString(), label: `Start from ${momentLabel(moment.toISOString(), zone)}` });
+  const words = text.trim().replace(/\s+/g, " ");
+  if (words) out.push({ kind: "words", q: words, label: `Search for “${words}”` });
+  return out;
+}
+
+/** The query with a suggestion applied. Turning words into a filter takes them out of the search. */
+export function applySuggestion(query: ListQuery, suggestion: ListSuggestion): ListQuery {
+  switch (suggestion.kind) {
+    case "pick":
+      return { ...query, q: "", picks: { ...query.picks, [suggestion.key]: suggestion.value } };
+    case "when":
+      return { ...query, q: "", when: suggestion.when, from: null };
+    case "from":
+      return { ...query, q: "", from: suggestion.from };
+    case "words":
+      return { ...query, q: suggestion.q };
+  }
+}
+
+/** The tags in the box, in the filters' order, then When or the moment it starts from. */
+export function listTags(query: ListQuery, facets: readonly ListFacet[], zone: string, defaultWhen: WhenPreset = "any"): ListTag[] {
+  const tags: ListTag[] = [];
+  for (const facet of facets) {
+    const option = facet.options.find((o) => o.value === query.picks[facet.key]);
+    if (option && option !== facet.options[0]) tags.push({ key: facet.key, label: `${facet.label}: ${option.label}` });
+  }
+  if (query.from) tags.push({ key: "from", label: `From ${momentLabel(query.from, zone)}` });
+  else if (query.when !== defaultWhen && query.when !== "any") tags.push({ key: "when", label: `When: ${WHEN_LABEL[query.when]}` });
+  return tags;
+}
+
+/** The query without one tag. */
+export function dropTag(query: ListQuery, key: string, defaultWhen: WhenPreset = "any"): ListQuery {
+  if (key === "from") return { ...query, from: null };
+  if (key === "when") return { ...query, when: defaultWhen };
+  const picks = { ...query.picks };
+  delete picks[key];
+  return { ...query, picks };
+}
+
+/** Each filter's choices by its key, for reading a query from the page's address. */
+export function facetChoices(facets: readonly ListFacet[]): Record<string, readonly string[]> {
+  return Object.fromEntries(facets.map((facet) => [facet.key, facet.options.map((option) => option.value)]));
+}
+
+/** The audit log's filters, as the search box offers them. */
+export const AUDIT_FACETS: readonly ListFacet[] = [
+  {
+    key: "who",
+    label: "Who",
+    options: [
+      { value: "anyone", label: "Anyone" },
+      { value: "you", label: "You", words: ["me", "mine", "owner"] },
+      { value: "others", label: "Someone else", words: ["people", "user", "others"] },
+      { value: "jonz", label: "Jonz itself", words: ["clock", "system", "automatic"] },
+    ],
+  },
+  {
+    key: "what",
+    label: "What",
+    options: [
+      { value: "anything", label: "Anything" },
+      { value: "notices", label: "Notices", words: ["banner", "status", "offer", "news"] },
+      { value: "accounts", label: "Accounts", words: ["deletions", "delete", "deleted"] },
+    ],
+  },
+];

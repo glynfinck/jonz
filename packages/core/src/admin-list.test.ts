@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applySuggestion,
+  AUDIT_FACETS,
+  AUDIT_WHAT,
+  AUDIT_WHO,
   auditLikeThis,
+  facetChoices,
+  listAsk,
+  dropTag,
+  listSuggestions,
+  listTags,
+  parseMoment,
   auditSearchFilter,
   listCount,
   listQueryFromParams,
@@ -86,6 +96,21 @@ describe("a busy list's address", () => {
   it("caps a pasted search at 200 letters", () => {
     expect(listQueryFromParams({ q: "x".repeat(500) }, AUDIT).q).toHaveLength(200);
   });
+
+  it("keeps no filter for a first choice, which is no filter at all", () => {
+    expect(listQueryFromParams({ who: "anyone", what: "notices" }, AUDIT).picks).toEqual({ what: "notices" });
+  });
+
+  it("reads the audit log's filters from the search box's list of them", () => {
+    expect(facetChoices(AUDIT_FACETS)).toEqual({ who: AUDIT_WHO, what: AUDIT_WHAT });
+  });
+});
+
+describe("what a busy list's reads are asked", () => {
+  it("fixes When's window at the moment it was asked, and trims the words", () => {
+    const query = listQueryFromParams({ q: " elm ", who: "you", when: "hour" }, AUDIT);
+    expect(listAsk(query, NOW, ZONE)).toEqual({ q: "elm", picks: { who: "you" }, after: "2026-10-30T15:44:00.000Z", before: null });
+  });
 });
 
 describe("a busy list's count", () => {
@@ -143,5 +168,93 @@ describe("Show more like this, on an entry", () => {
       "Everything Jonz did by itself",
       "Around this time",
     ]);
+  });
+});
+
+describe("the search box's suggestions", () => {
+  const labels = (text: string) => listSuggestions(text, AUDIT_FACETS, NOW, ZONE).map((s) => s.label);
+
+  it("lists every filter's choices with nothing typed, so you can see what there is", () => {
+    expect(labels("")).toEqual([
+      "Who: You",
+      "Who: Someone else",
+      "Who: Jonz itself",
+      "What: Notices",
+      "What: Accounts",
+      "When: The last hour",
+      "When: Today",
+      "When: The last 7 days",
+      "When: The last 30 days",
+    ]);
+  });
+
+  it("turns words into filters by their names, their choices, or other words for them", () => {
+    expect(labels("who")).toEqual(["Who: You", "Who: Someone else", "Who: Jonz itself", "Search for “who”"]);
+    expect(labels("me")).toEqual(["Who: You", "Search for “me”"]);
+    expect(labels("del")).toEqual(["What: Accounts", "Search for “del”"]);
+    expect(labels("last 7")).toEqual(["When: The last 7 days", "Search for “last 7”"]);
+    expect(labels("week")).toEqual(["When: The last 7 days", "Search for “week”"]);
+  });
+
+  it("always offers searching the words themselves, last", () => {
+    expect(labels("jonz is slow")).toEqual(["Search for “jonz is slow”"]);
+  });
+
+  it("offers a moment to start from", () => {
+    expect(labels("29 oct 23:30")).toEqual(["Start from Thu 29 Oct, 23:30", "Search for “29 oct 23:30”"]);
+  });
+});
+
+describe("a moment typed into the box", () => {
+  const moment = (text: string) => parseMoment(text, NOW, ZONE)?.toISOString() ?? null;
+
+  it("reads a time today, yesterday, a day of a month, and a full date", () => {
+    expect(moment("09:15")).toBe("2026-10-30T09:15:00.000Z");
+    expect(moment("yesterday 18:00")).toBe("2026-10-29T18:00:00.000Z");
+    expect(moment("29 Oct 23:30")).toBe("2026-10-29T23:30:00.000Z");
+    expect(moment("oct 29")).toBe("2026-10-29T23:59:59.000Z");
+    expect(moment("2026-10-01 08:00")).toBe("2026-10-01T07:00:00.000Z");
+  });
+
+  it("takes a day still to come this year as last year's", () => {
+    expect(moment("25 dec")).toBe("2025-12-25T23:59:59.000Z");
+  });
+
+  it("reads nothing still to come, or that isn't a moment", () => {
+    expect(moment("23:30")).toBeNull();
+    expect(moment("31 feb")).toBeNull();
+    expect(moment("slow")).toBeNull();
+    expect(moment("25:00")).toBeNull();
+  });
+});
+
+describe("tags in the box", () => {
+  const plain = { q: "", picks: {}, when: "any" as const, from: null };
+
+  it("turns a suggestion into a tag, taking its words out of the search", () => {
+    const [you] = listSuggestions("me", AUDIT_FACETS, NOW, ZONE);
+    const query = applySuggestion({ ...plain, q: "me" }, you);
+    expect(query).toEqual({ q: "", picks: { who: "you" }, when: "any", from: null });
+    expect(listTags(query, AUDIT_FACETS, ZONE)).toEqual([{ key: "who", label: "Who: You" }]);
+  });
+
+  it("keeps the words when they're what you search for", () => {
+    const words = listSuggestions("slow", AUDIT_FACETS, NOW, ZONE).at(-1)!;
+    expect(applySuggestion(plain, words)).toEqual({ ...plain, q: "slow" });
+  });
+
+  it("shows When, or the moment the list starts from, after the filters", () => {
+    const query = { ...plain, picks: { what: "notices", who: "jonz" }, when: "today" as const };
+    expect(listTags(query, AUDIT_FACETS, ZONE).map((tag) => tag.label)).toEqual(["Who: Jonz itself", "What: Notices", "When: Today"]);
+    expect(listTags({ ...query, from: "2026-10-29T23:30:00.000Z" }, AUDIT_FACETS, ZONE).at(-1)).toEqual({
+      key: "from",
+      label: "From Thu 29 Oct, 23:30",
+    });
+  });
+
+  it("takes one tag away and leaves the rest", () => {
+    const query = { ...plain, picks: { who: "you", what: "notices" }, when: "week" as const };
+    expect(dropTag(query, "who")).toEqual({ ...query, picks: { what: "notices" } });
+    expect(dropTag(query, "when")).toEqual({ ...query, when: "any" });
   });
 });

@@ -24,6 +24,7 @@ import AuditPage from '@/app/admin/audit/index';
 import DeletionsPage from '@/app/admin/deletions';
 import AdminIndex from '@/app/admin/index';
 import NoticesPage from '@/app/admin/notices';
+import { authStorage } from '@/api/storage';
 import { supabase } from '@/api/supabase';
 import { renderPages, untilRead } from '@/testing/pages';
 
@@ -37,6 +38,7 @@ jest.mock('@/api/owner', () => ({
   endNotice: jest.fn(),
   auditPage: jest.fn(),
   auditCount: jest.fn(),
+  auditFilter: jest.requireActual<typeof import('@/api/owner')>('@/api/owner').auditFilter,
   auditEntry: jest.fn(),
   ownerDeletions: jest.fn(),
   deleteNow: jest.fn(),
@@ -398,7 +400,7 @@ describe('the audit log', () => {
     jest.mocked(auditCount).mockImplementation(async (filter) => (filter?.q ? 0 : 1));
     await renderPages(ROUTES, '/admin/audit?q=nothing');
     await untilRead();
-    expect(screen.getByTestId('audit-no-match')).toHaveTextContent(new RegExp(AUDIT_LIST_COPY.noMatch));
+    expect(screen.getByTestId('audit-no-match')).toHaveTextContent(new RegExp(LIST_COPY.noMatch));
     expect(screen.getByTestId('audit-count')).toHaveTextContent(/^0 entries/);
     await fireEvent.press(screen.getByTestId('audit-clear'));
     expect(await screen.findByTestId('audit-row-2')).toBeVisible();
@@ -443,5 +445,77 @@ describe('the audit log', () => {
     expect(await screen.findByTestId('audit-row-12')).toBeVisible();
     expect(screen.getByTestId('audit-foot')).toHaveTextContent(LIST_COPY.everything);
     expect(screen.queryByTestId('audit-foot-more')).toBeNull();
+  });
+});
+
+describe('the search box every admin list has', () => {
+  beforeEach(() => authStorage.clear());
+
+  const box = () => screen.getByLabelText(AUDIT_LIST_COPY.searchPlaceholder);
+  const typeIn = async (text: string) => {
+    await fireEvent(box(), 'focus');
+    await fireEvent.changeText(box(), text);
+  };
+
+  it('lists every filter there is when you tap into it, nothing typed', async () => {
+    await renderPages(ROUTES, '/admin/audit');
+    await untilRead();
+    await fireEvent(box(), 'focus');
+    const panel = screen.getByTestId('audit-search-panel');
+    expect(panel).toHaveTextContent(/Who.*You.*Someone else.*Jonz itself.*What.*Notices.*Accounts.*When.*The last hour.*Today/);
+    expect(within(panel).queryByText('Anyone')).toBeNull();
+  });
+
+  it('turns a word into a filter: “me” offers Who: You, which becomes a tag and narrows the list', async () => {
+    await renderPages(ROUTES, '/admin/audit');
+    await untilRead();
+    await typeIn('me');
+    await fireEvent.press(screen.getByTestId('audit-search-suggestion-who-you'));
+    await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ who: 'you', q: '' })));
+    expect(screen.getByTestId('audit-search-tag-who')).toHaveTextContent(/Who: You/);
+    expect(box()).toHaveDisplayValue('');
+    expect(screen.getByTestId('audit-clear')).toBeVisible();
+  });
+
+  it('searches the words themselves once you pause', async () => {
+    await renderPages(ROUTES, '/admin/audit');
+    await untilRead();
+    await typeIn('slow');
+    expect(screen.getByTestId('audit-search-suggestion-words')).toHaveTextContent(/Search for “slow”/);
+    await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ q: 'slow' })));
+  });
+
+  it('starts the list from a moment typed into it', async () => {
+    await renderPages(ROUTES, '/admin/audit');
+    await untilRead();
+    await typeIn('yesterday 18:00');
+    await fireEvent.press(screen.getByTestId('audit-search-suggestion-from'));
+    await waitFor(() =>
+      expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ q: '', after: null, before: expect.any(String) })),
+    );
+    expect(screen.getByTestId('audit-search-tag-from')).toHaveTextContent(/From .*18:00/);
+  });
+
+  it('takes a tag away with a tap, and the last one with backspace in an empty box', async () => {
+    await renderPages(ROUTES, '/admin/audit?who=you&what=notices');
+    await untilRead();
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove What: Notices' }));
+    await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ who: 'you', what: 'anything' })));
+    await fireEvent(box(), 'keyPress', { nativeEvent: { key: 'Backspace' }, preventDefault: jest.fn() });
+    await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ who: 'anyone', what: 'anything' })));
+    expect(screen.queryByTestId('audit-search-tag-who')).toBeNull();
+  });
+
+  it('remembers recent searches on this device, a tap away', async () => {
+    await renderPages(ROUTES, '/admin/audit');
+    await untilRead();
+    await typeIn('del');
+    await fireEvent.press(screen.getByTestId('audit-search-suggestion-what-accounts'));
+    await fireEvent.press(screen.getByTestId('audit-clear'));
+    await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ what: 'anything' })));
+    await fireEvent(box(), 'focus');
+    await fireEvent.press(await screen.findByTestId('audit-search-recent'));
+    await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(null, expect.objectContaining({ what: 'accounts' })));
+    expect(screen.getByTestId('audit-search-tag-what')).toHaveTextContent(/What: Accounts/);
   });
 });
