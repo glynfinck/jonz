@@ -1,4 +1,16 @@
-import { humanError, noticeFromRow, qrShape, type AuditEntry, type Notice, type PendingDeletion, type QrShape } from '@app/core';
+import {
+  AUDIT_WHAT_ACTION,
+  auditSearchFilter,
+  humanError,
+  noticeFromRow,
+  qrShape,
+  type AuditEntry,
+  type AuditWhat,
+  type AuditWho,
+  type Notice,
+  type PendingDeletion,
+  type QrShape,
+} from '@app/core';
 
 import { apiPost } from './http';
 import { supabase } from './supabase';
@@ -116,17 +128,67 @@ async function refreshCopy(): Promise<boolean> {
 const PAGE = 50;
 const AUDIT_COLUMNS = 'id, at, actor, action, target_kind, target_id, reason, before, after';
 
-/** A page of the audit log, newest first, older than `before` (an entry's id) when given. */
-export async function auditPage(before: number | null): Promise<{ entries: AuditEntry[]; more: boolean }> {
-  let query = supabase
-    .from('admin_audit')
-    .select(AUDIT_COLUMNS)
+/** What the audit log is narrowed to: the search box, Who (with whose account "You" is), What, and When's window. */
+export interface AuditFilter {
+  q: string;
+  who: AuditWho;
+  what: AuditWhat;
+  ownerId: string | null;
+  after: string | null;
+  before: string | null;
+}
+
+export const ALL_OF_THE_AUDIT: AuditFilter = { q: '', who: 'anyone', what: 'anything', ownerId: null, after: null, before: null };
+
+/** The filter methods both of the audit log's reads share, whatever they select. */
+interface Narrowable<T> {
+  eq(column: string, value: unknown): T;
+  neq(column: string, value: unknown): T;
+  not(column: string, operator: string, value: unknown): T;
+  is(column: string, value: null): T;
+  like(column: string, pattern: string): T;
+  gt(column: string, value: unknown): T;
+  lte(column: string, value: unknown): T;
+  or(filters: string): T;
+}
+
+/** The database does the narrowing, so the log reads as fast with a million entries as with fifty. */
+function narrowed<T extends Narrowable<T>>(query: T, filter: AuditFilter): T {
+  let narrow = query;
+  if (filter.who === 'you' && filter.ownerId) narrow = narrow.eq('actor', filter.ownerId);
+  if (filter.who === 'others') {
+    narrow = narrow.not('actor', 'is', null);
+    if (filter.ownerId) narrow = narrow.neq('actor', filter.ownerId);
+  }
+  if (filter.who === 'jonz') narrow = narrow.is('actor', null);
+  const action = AUDIT_WHAT_ACTION[filter.what];
+  if (action) narrow = narrow.like('action', `${action}%`);
+  if (filter.after) narrow = narrow.gt('at', filter.after);
+  if (filter.before) narrow = narrow.lte('at', filter.before);
+  const search = auditSearchFilter(filter.q);
+  if (search) narrow = narrow.or(search);
+  return narrow;
+}
+
+/** A page of the audit log, newest first, older than `before` (an entry's id) when given, narrowed by `filter`. */
+export async function auditPage(
+  before: number | null,
+  filter: AuditFilter = ALL_OF_THE_AUDIT,
+): Promise<{ entries: AuditEntry[]; more: boolean }> {
+  let query = narrowed(supabase.from('admin_audit').select(AUDIT_COLUMNS), filter)
     .order('id', { ascending: false })
     .limit(PAGE + 1);
   if (before !== null) query = query.lt('id', before);
   const { data, error } = await query;
   if (error) throw new Error(humanError(error));
   return { entries: data.slice(0, PAGE).map(entryFromRow), more: data.length > PAGE };
+}
+
+/** How many entries match: the database's own count, estimated once there are too many to count quickly. */
+export async function auditCount(filter: AuditFilter = ALL_OF_THE_AUDIT): Promise<number> {
+  const { count, error } = await narrowed(supabase.from('admin_audit').select('id', { count: 'estimated', head: true }), filter);
+  if (error) throw new Error(humanError(error));
+  return count ?? 0;
 }
 
 /** One entry of the audit log, for its own page on a phone; null when there's none with that id. */

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  auditByDay,
   auditChanges,
   auditLine,
+  auditParts,
   daysUntil,
   formatLocalDateTime,
   noticeEndsAt,
@@ -125,7 +125,24 @@ describe("the audit log", () => {
     expect(account("account.delete_keep", "a1b2c3d4").title).toBe("Someone kept their account");
     expect(account("account.delete_stop", owner).title).toBe("You stopped a deletion");
     expect(account("account.delete_now", owner).title).toBe("You deleted an account sooner");
-    expect(account("account.delete_done", null).title).toBe("An account was deleted");
+    expect(account("account.delete_done", null).title).toBe("Jonz deleted an account");
+  });
+
+  it("splits an entry into who, what, where and its detail, for a table's columns", () => {
+    expect(auditParts(entry({}), owner)).toEqual({
+      who: "You",
+      what: "wrote a status notice",
+      where: "Notices",
+      detail: "Jonz is slow right now",
+    });
+    const done = entry({ action: "account.delete_done", actor: null, targetKind: "account", targetId: "a1b2c3d4-0000", after: null });
+    expect(auditParts(done, owner)).toEqual({ who: "Jonz", what: "deleted an account", where: "Account a1b2c3d4", detail: "" });
+    expect(auditParts(entry({ action: "house.open", actor: null, targetId: "h1" }), owner)).toEqual({
+      who: "Jonz",
+      what: "house.open",
+      where: "h1",
+      detail: "",
+    });
   });
 
   it("lists what changed on a deletion in words", () => {
@@ -143,16 +160,6 @@ describe("the audit log", () => {
     ]);
   });
 
-  it("groups entries by day, newest first as they come", () => {
-    const days = auditByDay(
-      [entry({ id: 3, at: "2026-10-30T16:41:00Z" }), entry({ id: 2, at: "2026-10-30T09:00:00Z" }), entry({ id: 1, at: "2026-10-29T22:00:00Z" })],
-      "UTC",
-    );
-    expect(days.map((d) => [d.day, d.entries.map((e) => e.id)])).toEqual([
-      ["Fri 30 Oct", [3, 2]],
-      ["Thu 29 Oct", [1]],
-    ]);
-  });
 });
 
 describe("a notice's window, as its row says it", () => {

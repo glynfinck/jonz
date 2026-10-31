@@ -1,6 +1,6 @@
 import { ADMIN_COPY } from '@app/core';
 import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { auditEntry } from '@/api/owner';
 import { AuditDetail } from '@/components/admin/audit-entry';
@@ -22,7 +22,12 @@ export default function AuditEntryPage() {
       ) : entry.isError ? (
         <ReadFailed onRetry={() => void entry.refetch()} />
       ) : entry.data ? (
-        <AuditDetail entry={entry.data} ownerId={ownerId} />
+        <AuditDetail
+          entry={entry.data}
+          ownerId={ownerId}
+          // Back to the log, narrowed to more like this one.
+          onLikeThis={(like) => router.dismissTo({ pathname: '/admin/audit', params: like })}
+        />
       ) : (
         <Meta>{ADMIN_COPY.noEntry}</Meta>
       )}
