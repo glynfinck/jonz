@@ -9,7 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { checkCode, enrollFactor, verifiedFactor } from '@/api/owner';
 import { Button } from '@/components/button';
-import { Field } from '@/components/field';
+import { CodeBoxes } from '@/components/code-boxes';
 import { ReadFailed, Reading } from '@/components/read-state';
 import { Chip } from '@/components/status-mark';
 import { Body, Meta, Title } from '@/components/text';
@@ -63,25 +63,24 @@ function CodeForm({ factorId, label, onPassed }: { factorId: string; label: stri
   const [code, setCode] = useState('');
   const [problem, setProblem] = useState<string | undefined>();
   const [checking, setChecking] = useState(false);
-  const submit = async () => {
+  const submit = async (typed = code) => {
     setChecking(true);
-    const ok = await checkCode(factorId, code);
+    const ok = await checkCode(factorId, typed);
     setChecking(false);
     if (ok) onPassed();
     else setProblem(ADMIN_COPY.wrongCode);
   };
   return (
     <>
-      <Field
+      <CodeBoxes
         label={ADMIN_COPY.codeLabel}
         value={code}
-        onChangeText={(text) => {
-          setCode(text.replace(/[^\d]/g, '').slice(0, 6));
+        onChangeText={(typed) => {
+          setCode(typed);
           setProblem(undefined);
         }}
-        keyboardType="number-pad"
-        textContentType="oneTimeCode"
-        autoComplete="one-time-code"
+        onFilled={(typed) => void submit(typed)}
+        editable={!checking}
         autoFocus
         problem={problem}
         onSubmitEditing={() => void submit()}

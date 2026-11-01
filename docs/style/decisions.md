@@ -6,7 +6,8 @@ pages are private artifacts on claude.ai.
 
 | Date | Decision | Where | Rule |
 | --- | --- | --- | --- |
-| 2026-10-31 | Report a problem in the app: House › Help, a sheet that lists the details before they're sent, Your reports with replies, and the owner's Inbox as the first admin page | Report a problem, after #85 | [lists](lists.md#admin-lists) |
+| 2026-11-01 | Every 6-digit code is six equal boxes edge to edge with the button, filled in for you where a phone or password manager can, and checked on the sixth digit | code boxes | [controls](controls.md#inputs) |
+| 2026-10-31 | Report a problem in the app: House › Help, a sheet that lists the details before they're sent, Your reports with replies, and the owner's Inbox as the first admin page | #87 | [lists](lists.md#admin-lists) |
 | 2026-10-31 | One style guide, a component kit with lint rules, and a screenshot-tested style page; the rules marked New in this guide approved with it | this guide | all |
 | 2026-10-31 | Admin lists: one smart search box with filters as tags, for very many rows, no day headings | #85 | [lists](lists.md#admin-lists) |
 | 2026-10-31 | Long lists load as you scroll with one shared foot; on a laptop list and panel scroll separately, search and column names pinned | #82 | [lists](lists.md#long-lists), [layout](layout.md#laptop-pages) |

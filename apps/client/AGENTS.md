@@ -140,7 +140,8 @@ permanent once a store has seen them.
   row wherever one is drawn (Today, Week's groups and its table): core's
   `johnRow` decides the circle, the meta line and the one trailing item for
   anyone's John and whoever is looking, and `DoneFold` folds the finished
-  ones with how many were late. Then one folder per place:
+  ones with how many were late. `CodeBoxes` is every 6-digit code (the
+  admin code, the codes we email). Then one folder per place:
   - `today/`: Next up (`NextUp`, or `SetupCard`, an admin's checklist
     before the first deal), Needs you, the rest of your week and the page's
     tappable lines (`PageLine`).

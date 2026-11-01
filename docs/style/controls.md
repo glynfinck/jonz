@@ -61,6 +61,15 @@
 - Forms sit in a column capped at `FORM_MAX` (520) on a laptop. (**New**)
 - A short select opens in place (`PickRow`); a radio or checkbox is a
   `ChoiceRow`. (AGENTS.md)
+- **A short code is six boxes** (`CodeBoxes`): the admin code and the codes
+  we email. The six are equal and span the column edge to edge with the
+  button, each a little taller than wide (48 to 64). One real field lies
+  over them, so a phone or password manager can fill in the code
+  (`one-time-code`), paste works with a space or dash in it, and a screen
+  reader hears one field. The code is checked on its sixth digit unless the
+  step still needs more (a new password); after a wrong code, the next digit
+  starts it over. (Code boxes, 1 Nov) *Backed by* Apple's and the HTML
+  standard's one-time-code autofill and WCAG 1.3.5 (input purpose).
 
 ## One move, one place
 

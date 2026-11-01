@@ -17,6 +17,7 @@ import {
   auditCount,
   auditEntry,
   auditPage,
+  checkCode,
   deleteByEmail,
   deleteNow,
   deletionsCount,
@@ -194,6 +195,24 @@ describe('who gets in', () => {
     expect(screen.getByText(ADMIN_COPY.codeTitle)).toBeVisible();
     expect(noticesPage).not.toHaveBeenCalled();
     expect(liveNotices).not.toHaveBeenCalled();
+  });
+
+  it('checks the code as soon as its sixth digit is in, and a wrong one starts over with the next digit', async () => {
+    jest.mocked(ownerStatus).mockResolvedValue({ owner: true, mfa: false });
+    jest.mocked(verifiedFactor).mockResolvedValue('f1');
+    jest.mocked(checkCode).mockResolvedValue(false);
+    await renderPages(ROUTES, '/admin/notices');
+    const code = await screen.findByLabelText(ADMIN_COPY.codeLabel);
+    expect(code.props).toMatchObject({ textContentType: 'oneTimeCode', autoComplete: 'one-time-code' });
+    await fireEvent.changeText(code, '48291');
+    expect(checkCode).not.toHaveBeenCalled();
+    await fireEvent.changeText(code, '482913');
+    expect(checkCode).toHaveBeenCalledWith('f1', '482913');
+    expect(await screen.findByRole('alert')).toHaveTextContent(ADMIN_COPY.wrongCode);
+    await fireEvent.changeText(code, '4829137');
+    expect(code.props.value).toBe('7');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(checkCode).toHaveBeenCalledTimes(1);
   });
 
   it('adds the authenticator the first time: Supabase’s QR code drawn to fit its square, and the key to type', async () => {
