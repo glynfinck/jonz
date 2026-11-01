@@ -1,61 +1,108 @@
-import { ADMIN_COPY, auditChanges, auditLine, formatWhen, type AuditEntry } from '@app/core';
-import { MegaphoneIcon, ScrollTextIcon, type LucideIcon } from 'lucide-react-native';
+import {
+  ADMIN_COPY,
+  AUDIT_LIST_COPY,
+  auditChanges,
+  auditLikeThis,
+  auditLine,
+  auditParts,
+  formatWhen,
+  listTime,
+  type AuditEntry,
+} from '@app/core';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ListTableRow, type ListColumn } from '@/components/admin/list-table';
 import { Group, GroupItem } from '@/components/group';
 import { Row } from '@/components/row';
 import { Section } from '@/components/section';
 import { Lead, Meta } from '@/components/text';
-import { FONT, RADIUS, SPACE, TABULAR, useTheme } from '@/theme';
+import { FONT, SPACE, TABULAR, useTheme } from '@/theme';
 
-const KIND_ICON: Record<string, LucideIcon> = { notice: MegaphoneIcon };
+/** The audit log's columns on a laptop: when, who, what happened (with its detail), and where. */
+export const AUDIT_TABLE: readonly ListColumn[] = [
+  // As narrow as "Fri 30 Oct, 21:42", "Someone else" and "Account 5b1e9c40" allow, so what happened has the room.
+  { key: 'when', label: AUDIT_LIST_COPY.when, width: 144 },
+  { key: 'who', label: AUDIT_LIST_COPY.who, width: 112 },
+  { key: 'what', label: 'What happened', flex: 1 },
+  { key: 'where', label: 'Where', width: 136 },
+];
 
-/** An entry's mark: its kind's icon on a plate, ink when it was you. */
-export function AuditMark({ entry, ownerId }: { entry: AuditEntry; ownerId: string | null }) {
-  const { colors } = useTheme();
-  const you = entry.actor !== null && entry.actor === ownerId;
-  const Icon = KIND_ICON[entry.targetKind] ?? ScrollTextIcon;
-  return (
-    <View aria-hidden style={[styles.mark, { backgroundColor: you ? colors.foreground : colors.secondary }]}>
-      <Icon size={18} strokeWidth={2.5} color={you ? colors.background : colors.foreground} />
-    </View>
-  );
+/** The owner's zone: an admin list's times and Today are the owner's own. */
+export function ownerZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-/** One entry in the list: its mark, what was done, its detail, and the time. */
-export function AuditRow({
-  entry,
-  ownerId,
-  chosen,
-  onPress,
-}: {
-  entry: AuditEntry;
-  ownerId: string | null;
-  chosen?: boolean;
-  onPress: () => void;
-}) {
+/** One entry on a phone: who did what, its detail (or where) under it, and the time. No icon: a busy list needs the room. */
+export function AuditRow({ entry, ownerId, now, onPress }: { entry: AuditEntry; ownerId: string | null; now: Date; onPress: () => void }) {
   const { title, meta } = auditLine(entry, ownerId);
   return (
     <Row
       title={title}
       meta={meta}
-      leading={<AuditMark entry={entry} ownerId={ownerId} />}
-      trailing={<Time iso={entry.at} />}
-      tint={chosen}
+      trailing={<Time text={listTime(entry.at, now, ownerZone(), false)} />}
       onPress={onPress}
       testID={`audit-row-${entry.id}`}
     />
   );
 }
 
-function Time({ iso }: { iso: string }) {
+/** One entry on a laptop: one line across the table's columns, the time to the second. */
+export function AuditTableRow({
+  entry,
+  ownerId,
+  now,
+  chosen,
+  onPress,
+}: {
+  entry: AuditEntry;
+  ownerId: string | null;
+  now: Date;
+  chosen: boolean;
+  onPress: () => void;
+}) {
+  const { colors, type } = useTheme();
+  const parts = auditParts(entry, ownerId);
+  const when = listTime(entry.at, now, ownerZone());
+  return (
+    <ListTableRow
+      columns={AUDIT_TABLE}
+      cells={{
+        when,
+        who: parts.who,
+        what: (
+          <Text numberOfLines={1} style={[type.body, { color: colors.foreground }]}>
+            {parts.what}
+            {parts.detail ? <Text style={{ color: colors.mutedForeground }}>{`  ${parts.detail}`}</Text> : null}
+          </Text>
+        ),
+        where: parts.where,
+      }}
+      quiet={['when']}
+      strong={['who']}
+      chosen={chosen}
+      onPress={onPress}
+      accessibilityLabel={[when, `${parts.who} ${parts.what}`, parts.detail, parts.where].filter(Boolean).join(', ')}
+      testID={`audit-row-${entry.id}`}
+    />
+  );
+}
+
+function Time({ text }: { text: string }) {
   const { type, colors } = useTheme();
-  const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
-  return <Text style={[type.meta, TABULAR, { color: colors.mutedForeground }]}>{time}</Text>;
+  return <Text style={[type.meta, TABULAR, { color: colors.mutedForeground }]}>{text}</Text>;
 }
 
 /** An entry in full: when, what changed (old struck through, new in bold), and its details. */
-export function AuditDetail({ entry, ownerId }: { entry: AuditEntry; ownerId: string | null }) {
+export function AuditDetail({
+  entry,
+  ownerId,
+  onLikeThis,
+}: {
+  entry: AuditEntry;
+  ownerId: string | null;
+  /** Show more like this: the list, narrowed the way the row chosen says. */
+  onLikeThis?: (params: Record<string, string>) => void;
+}) {
   const { colors, type } = useTheme();
   const changes = auditChanges(entry);
   return (
@@ -87,13 +134,28 @@ export function AuditDetail({ entry, ownerId }: { entry: AuditEntry; ownerId: st
           {entry.reason ? <Row title={entry.reason} /> : null}
         </Group>
       </Section>
+      {onLikeThis ? (
+        <Section label={AUDIT_LIST_COPY.likeThis} testID="audit-like-this">
+          <Group>
+            {auditLikeThis(entry, ownerId).map((like) => (
+              <Row
+                key={like.label}
+                title={like.label}
+                meta={like.meta}
+                chevron
+                onPress={() => onLikeThis(like.params)}
+                testID={`audit-like-${Object.keys(like.params)[0]}`}
+              />
+            ))}
+          </Group>
+        </Section>
+      ) : null}
       <Meta>{ADMIN_COPY.appendOnly}</Meta>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mark: { width: 32, height: 32, borderRadius: RADIUS, alignItems: 'center', justifyContent: 'center' },
   detail: { gap: SPACE.xl },
   head: { gap: SPACE.xs },
   change: { gap: 2, paddingVertical: SPACE.md },

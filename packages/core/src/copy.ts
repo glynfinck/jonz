@@ -1338,6 +1338,10 @@ export const LIST_COPY = {
   /** Under the oldest there is. */
   everything: "That’s everything.",
   failed: "Couldn’t read any more. Check the connection.",
+  /** A busy admin list's search, taken back to everything. */
+  clear: "Clear",
+  noMatch: "Nothing matches",
+  noMatchBody: "Try other words, or clear the filters.",
 } as const;
 
 /** The whole Wall, by day. */

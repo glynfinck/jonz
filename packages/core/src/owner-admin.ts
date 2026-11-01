@@ -33,10 +33,6 @@ export const ADMIN_COPY = {
   added: "Check the code",
   wrongCode: "That code didn’t work. Codes change every 30 seconds, so try the newest one.",
   // Notices.
-  noticesMeta: (showing: number, later: number) =>
-    [showing === 0 ? "Nothing showing" : `${showing} showing`, later > 0 ? `${later} starting later` : null]
-      .filter(Boolean)
-      .join(", "),
   tellEveryone: "Tell everyone",
   /** The ways in to a new notice, named by what's happening, outages first. */
   start: {
@@ -68,9 +64,6 @@ export const ADMIN_COPY = {
   ended: "Ended.",
   copyFailed: "Saved, but the copy for outages didn’t update. Save again to retry.",
   auditNote: "Saving writes to the audit log with your name.",
-  showing: "Showing",
-  startingLater: "Starting later",
-  endedCount: (count: number) => `${count} ended`,
   noNotices: "No notices yet",
   noNoticesBody: "A notice shows at the top of the app for everyone: an outage, an offer or news.",
   // The audit log.
@@ -87,11 +80,9 @@ export const ADMIN_COPY = {
   openNotice: "Open the notice",
   noEntry: "That entry isn’t in the log.",
   // Deletions.
-  deletionsMeta: (count: number) => (count === 0 ? "Nobody waiting" : `${count} waiting`),
   noDeletions: "Nobody is waiting to be deleted",
   noDeletionsBody:
     "When someone deletes their account it waits here for 30 days, in case they change their mind. Signing in again and pressing Keep my account stops it.",
-  waiting: "Waiting",
   goesIn: (days: number) => (days <= 0 ? "Goes within 10 minutes" : days === 1 ? "Goes tomorrow" : `Goes in ${days} days`),
   askedInApp: "asked in the app",
   startedByYou: "you started it",
@@ -205,6 +196,18 @@ export function noticeWindow(notice: { startsAt: string; endsAt: string | null }
   return `${from}, ${end === null ? "until you end it" : `until ${formatWhen(notice.endsAt!, zone)}`}`;
 }
 
+/**
+ * A notice's row in Every notice, saying whether it's on as it says when:
+ * "Showing since Mon 2 Nov, 09:05, until you end it", "Starts Mon 9 Nov,
+ * 08:00, until Mon 16 Nov, 08:00", "Ended Sun 1 Nov, 10:00".
+ */
+export function noticeLine(notice: { startsAt: string; endsAt: string | null }, now: Date, zone?: string): string {
+  const until = notice.endsAt ? `until ${formatWhen(notice.endsAt, zone)}` : "until you end it";
+  if (notice.endsAt && Date.parse(notice.endsAt) <= now.getTime()) return `Ended ${formatWhen(notice.endsAt, zone)}`;
+  if (Date.parse(notice.startsAt) > now.getTime()) return `Starts ${formatWhen(notice.startsAt, zone)}, ${until}`;
+  return `Showing since ${formatWhen(notice.startsAt, zone)}, ${until}`;
+}
+
 // --- The audit log ---------------------------------------------------------------------
 
 export interface AuditEntry {
@@ -290,48 +293,55 @@ export function auditChanges(entry: Pick<AuditEntry, "before" | "after">, zone?:
 
 const KIND_WORD: Record<string, string> = { status: "a status notice", offer: "an offer", news: "a news notice" };
 
-/** How an entry reads in the list: what was done, and its detail line. */
-export function auditLine(entry: AuditEntry, ownerId: string | null): { title: string; meta: string } {
+/**
+ * An entry in parts, for a table's columns: who did it, what they did,
+ * where (the page or the account it was done to), and a detail (a
+ * notice's title). The log names an account by its id only: once it's
+ * deleted, nothing else is left.
+ */
+export interface AuditParts {
+  who: string;
+  what: string;
+  where: string;
+  detail: string;
+}
+
+export function auditParts(entry: AuditEntry, ownerId: string | null): AuditParts {
   const who = entry.actor !== null && entry.actor === ownerId ? ADMIN_COPY.you : "The owner";
   const after = asRecord(entry.after);
   const kind = KIND_WORD[String(after?.kind ?? "")] ?? "a notice";
   const title = typeof after?.title === "string" ? after.title : "";
+  const account = accountMeta(entry);
   switch (entry.action) {
     case "notice.save":
-      return { title: `${who} ${entry.before ? "changed" : "wrote"} ${kind}`, meta: title };
+      return { who, what: `${entry.before ? "changed" : "wrote"} ${kind}`, where: "Notices", detail: title };
     case "notice.end":
-      return { title: `${who} ended ${kind}`, meta: title };
-    // The log names an account by its id only: once it's deleted, nothing else is left.
+      return { who, what: `ended ${kind}`, where: "Notices", detail: title };
     case "account.delete_request":
       return after?.requested_by === "owner"
-        ? { title: `${who} started deleting an account`, meta: accountMeta(entry) }
-        : { title: "Someone asked to delete their account", meta: accountMeta(entry) };
+        ? { who, what: "started deleting an account", where: account, detail: "" }
+        : { who: "Someone", what: "asked to delete their account", where: account, detail: "" };
     case "account.delete_keep":
-      return { title: "Someone kept their account", meta: accountMeta(entry) };
+      return { who: "Someone", what: "kept their account", where: account, detail: "" };
     case "account.delete_stop":
-      return { title: `${who} stopped a deletion`, meta: accountMeta(entry) };
+      return { who, what: "stopped a deletion", where: account, detail: "" };
     case "account.delete_now":
-      return { title: `${who} deleted an account sooner`, meta: accountMeta(entry) };
+      return { who, what: "deleted an account sooner", where: account, detail: "" };
     case "account.delete_done":
-      return { title: "An account was deleted", meta: accountMeta(entry) };
+      // The clock does it, on the day.
+      return { who: "Jonz", what: "deleted an account", where: account, detail: "" };
     default:
-      return { title: `${who}: ${entry.action}`, meta: entry.targetId ?? "" };
+      return { who: entry.actor === null ? "Jonz" : who, what: entry.action, where: entry.targetId ?? "", detail: "" };
   }
+}
+
+/** How an entry reads in a list of rows: who did what as its title, and its detail (or where) under it. */
+export function auditLine(entry: AuditEntry, ownerId: string | null): { title: string; meta: string } {
+  const parts = auditParts(entry, ownerId);
+  const known = parts.what !== entry.action;
+  return { title: known ? `${parts.who} ${parts.what}` : `${parts.who}: ${entry.action}`, meta: parts.detail || parts.where };
 }
 
 function accountMeta(entry: AuditEntry): string {
   return entry.targetId ? `Account ${entry.targetId.slice(0, 8)}` : "";
-}
-
-/** Entries by day, newest first, for the list's day headings. */
-export function auditByDay(entries: readonly AuditEntry[], zone?: string): { day: string; entries: AuditEntry[] }[] {
-  const days: { day: string; entries: AuditEntry[] }[] = [];
-  const label = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: zone });
-  for (const entry of entries) {
-    const day = label.format(new Date(entry.at));
-    const last = days[days.length - 1];
-    if (last && last.day === day) last.entries.push(entry);
-    else days.push({ day, entries: [entry] });
-  }
-  return days;
 }
