@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  auditByDay,
   auditChanges,
   auditLine,
+  auditParts,
   daysUntil,
   formatLocalDateTime,
   noticeEndsAt,
   noticeProblems,
+  noticeLine,
   noticeWindow,
   parseLocalDateTime,
   type AuditEntry,
@@ -125,7 +126,24 @@ describe("the audit log", () => {
     expect(account("account.delete_keep", "a1b2c3d4").title).toBe("Someone kept their account");
     expect(account("account.delete_stop", owner).title).toBe("You stopped a deletion");
     expect(account("account.delete_now", owner).title).toBe("You deleted an account sooner");
-    expect(account("account.delete_done", null).title).toBe("An account was deleted");
+    expect(account("account.delete_done", null).title).toBe("Jonz deleted an account");
+  });
+
+  it("splits an entry into who, what, where and its detail, for a table's columns", () => {
+    expect(auditParts(entry({}), owner)).toEqual({
+      who: "You",
+      what: "wrote a status notice",
+      where: "Notices",
+      detail: "Jonz is slow right now",
+    });
+    const done = entry({ action: "account.delete_done", actor: null, targetKind: "account", targetId: "a1b2c3d4-0000", after: null });
+    expect(auditParts(done, owner)).toEqual({ who: "Jonz", what: "deleted an account", where: "Account a1b2c3d4", detail: "" });
+    expect(auditParts(entry({ action: "house.open", actor: null, targetId: "h1" }), owner)).toEqual({
+      who: "Jonz",
+      what: "house.open",
+      where: "h1",
+      detail: "",
+    });
   });
 
   it("lists what changed on a deletion in words", () => {
@@ -143,16 +161,6 @@ describe("the audit log", () => {
     ]);
   });
 
-  it("groups entries by day, newest first as they come", () => {
-    const days = auditByDay(
-      [entry({ id: 3, at: "2026-10-30T16:41:00Z" }), entry({ id: 2, at: "2026-10-30T09:00:00Z" }), entry({ id: 1, at: "2026-10-29T22:00:00Z" })],
-      "UTC",
-    );
-    expect(days.map((d) => [d.day, d.entries.map((e) => e.id)])).toEqual([
-      ["Fri 30 Oct", [3, 2]],
-      ["Thu 29 Oct", [1]],
-    ]);
-  });
 });
 
 describe("a notice's window, as its row says it", () => {
@@ -167,6 +175,16 @@ describe("a notice's window, as its row says it", () => {
   it("says from when for one that starts later, and when it ended for one that's over", () => {
     expect(noticeWindow({ startsAt: at("2026-11-09T08:00:00Z"), endsAt: null }, NOW, "UTC")).toBe("from Mon 9 Nov, 08:00, until you end it");
     expect(noticeWindow({ startsAt: at("2026-11-01T08:00:00Z"), endsAt: at("2026-11-01T10:00:00Z") }, NOW, "UTC")).toBe("ended Sun 1 Nov, 10:00");
+  });
+});
+
+describe("a notice's line in Every notice", () => {
+  it("says whether it's on in the same words as when", () => {
+    expect(noticeLine({ startsAt: "2026-11-02T09:05:00Z", endsAt: null }, NOW, "UTC")).toBe("Showing since Mon 2 Nov, 09:05, until you end it");
+    expect(noticeLine({ startsAt: "2026-11-09T08:00:00Z", endsAt: "2026-11-16T08:00:00Z" }, NOW, "UTC")).toBe(
+      "Starts Mon 9 Nov, 08:00, until Mon 16 Nov, 08:00",
+    );
+    expect(noticeLine({ startsAt: "2026-11-01T08:00:00Z", endsAt: "2026-11-01T10:00:00Z" }, NOW, "UTC")).toBe("Ended Sun 1 Nov, 10:00");
   });
 });
 

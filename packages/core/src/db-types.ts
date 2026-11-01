@@ -1849,6 +1849,37 @@ export type Database = {
           user_id: string
         }[]
       }
+      owner_deletions_count: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_by?: string
+          p_goes?: string
+          p_q?: string
+        }
+        Returns: number
+      }
+      owner_deletions_page: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_by?: string
+          p_cursor_at?: string
+          p_cursor_user?: string
+          p_goes?: string
+          p_limit?: number
+          p_q?: string
+        }
+        Returns: {
+          delete_after: string
+          email: string
+          house_name: string
+          name: string
+          requested_at: string
+          requested_by: string
+          user_id: string
+        }[]
+      }
       owner_request_deletion: {
         Args: { p_email: string; p_reason?: string }
         Returns: string
