@@ -40,8 +40,11 @@ the checklist that goes with them. Work through it for every UI change.
 2. Look at the change at 320 (small phone), 390 (phone), a laptop with the
    Ask Jonz panel open, and 1440, each in Day and Night. Check: nothing cut
    off or overlapping, buttons in a row equal, columns sharing a top edge,
-   targets at least 48.
-3. Put those pictures in the PR (its Pictures section).
+   targets at least 48. The style page (`/style`, `/style?panel=1`) shows
+   every building block at once; add any new block to it.
+3. Put those pictures in the PR (its Pictures section). If the style page's
+   pictures changed on purpose, make them again (docs/style/README.md, "What
+   checks it") and say why in the PR.
 
 ## Design options for Glyn
 

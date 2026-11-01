@@ -116,6 +116,8 @@ function Routes() {
           <Stack.Screen name="privacy" />
           <Stack.Screen name="delete" />
           <Stack.Screen name="terms" />
+          {/* The style page, where it's shown at all (components/style-page/enabled.ts). */}
+          <Stack.Screen name="style" />
           <Stack.Screen name="+not-found" />
         </Stack>
       </NoticeBand>

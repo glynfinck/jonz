@@ -54,6 +54,21 @@ The guide stays true only if every design decision lands in it.
   to that list by hand.
 - **Contrast** (`packages/core/src/bin-night.test.ts`): every colour pair in
   Day and Night.
+- **The style page** (`/style`, in `apps/client/src/components/style-page/`):
+  every building block and sample Today, Week, House and admin-list pages,
+  built from the real components. Shown when running locally, on staging
+  and its previews, and in the e2e's build; production says it isn't there.
+  Open `/style?panel=1` on a laptop for the side panel beside it. A new
+  building block goes on this page in the PR that adds it.
+- **Style page tests** (`apps/api/e2e/client-style.spec.ts`, part of the
+  e2e): at 320, 390, a 1024 laptop with the panel open and 1440, they
+  measure the layout rules (buttons in a row one width and height, side by
+  side or stacked; no words cut off; icon buttons a 48 square; columns
+  sharing a top edge) and compare a picture of each width in Day and Night
+  with the one kept in `client-style.spec.ts-snapshots/`. A change that
+  means to alter how something looks makes the pictures again:
+  `npx playwright test client-style --project=laptop-chrome --update-snapshots`
+  in `apps/api`, and the new pictures go in the PR.
 
 ## For agents
 
