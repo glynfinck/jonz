@@ -62,6 +62,7 @@ export function JohnList({
   groups,
   editable,
   whoAdds,
+  quietAdd = false,
 }: {
   houseId: string;
   rules: HouseRules;
@@ -70,6 +71,8 @@ export function JohnList({
   editable: boolean;
   /** An empty list, to someone who can't add to it: who will ("Sam will add the Johns."). */
   whoAdds?: string;
+  /** Add a John in outline over the list on a laptop, for a page whose one amber button is another (the first deal). */
+  quietAdd?: boolean;
 }) {
   const [editing, setEditing] = useState<Draft | null>(null);
   const [reading, setReading] = useState<JohnDef | null>(null);
@@ -133,7 +136,15 @@ export function JohnList({
               <Meta style={styles.toolbarWords}>
                 {`${JOHN_LIST_COPY.count(johns.length)} ${JOHN_LIST_COPY.perWeek(weeklyEffort(johns))}`}
               </Meta>
-              {editable ? <Button icon={PlusIcon} label={JOHN_LIST_COPY.add} onPress={add} testID="add-john" /> : null}
+              {editable ? (
+                <Button
+                  variant={quietAdd ? 'outline' : undefined}
+                  icon={PlusIcon}
+                  label={JOHN_LIST_COPY.add}
+                  onPress={add}
+                  testID="add-john"
+                />
+              ) : null}
             </View>
           ) : null}
           <Flow
