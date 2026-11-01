@@ -3,6 +3,7 @@ import {
   EMAIL_SIGN_IN_COPY as COPY,
   emailAuthProblem,
   emailLooksRight,
+  nameProblem,
   PASSWORD_MIN,
   passwordProblem,
   type EmailStep,
@@ -22,6 +23,8 @@ import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
 import { CodeBoxes } from '@/components/code-boxes';
 import { Field } from '@/components/field';
+import { Group } from '@/components/group';
+import { ChoiceRow } from '@/components/setup/choice-row';
 import { HiddenUsername, SignInForm } from '@/components/sign-in-form';
 import { Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
@@ -30,7 +33,7 @@ import { SPACE, useTheme } from '@/theme';
 /** Enter on a phone's keyboard; the web form handles its own, so it isn't sent twice. */
 const onPhone = (act: () => void) => (Platform.OS === 'web' ? undefined : act);
 
-type Problem = { field?: 'email' | 'password' | 'code'; message: string };
+type Problem = { field?: 'name' | 'email' | 'password' | 'code'; message: string };
 
 /**
  * The sign-in sign's email part, under Google and Microsoft: sign in with
@@ -41,6 +44,8 @@ type Problem = { field?: 'email' | 'password' | 'code'; message: string };
 export function EmailSignIn() {
   const { colors } = useTheme();
   const [step, setStep] = useState<EmailStep>('sign-in');
+  const [name, setName] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -80,6 +85,11 @@ export function EmailSignIn() {
     }
   }
 
+  const nameCheck = (): Problem | null => {
+    const message = nameProblem(name);
+    return message ? { field: 'name', message } : null;
+  };
+  const agreeCheck = (): Problem | null => (agreed ? null : { message: COPY.noAgree });
   const emailCheck = (): Problem | null => (emailLooksRight(email) ? null : { field: 'email', message: COPY.badEmail });
   const passwordCheck = (): Problem | null => {
     const message = passwordProblem(password);
@@ -91,6 +101,23 @@ export function EmailSignIn() {
   };
   const fieldProblem = (field: Problem['field']) => (problem && problem.field === field ? problem.message : undefined);
 
+  const nameField = (
+    <Field
+      label={COPY.name}
+      hint={COPY.nameHint}
+      value={name}
+      onChangeText={setName}
+      problem={fieldProblem('name')}
+      autoCapitalize="words"
+      autoComplete="name"
+      textContentType="name"
+      nativeID="name"
+      maxLength={60}
+      returnKeyType="next"
+      editable={!busy}
+      testID="email-name"
+    />
+  );
   const emailField = (
     <Field
       label={COPY.email}
@@ -147,8 +174,8 @@ export function EmailSignIn() {
   );
   const signIn = () => run([emailCheck(), password ? null : passwordCheck()], () => signInWithEmail(email, password));
   const signUp = () =>
-    run([emailCheck(), passwordCheck()], async () => {
-      if ((await signUpWithEmail(email, password)) === 'code-sent') go('confirm');
+    run([nameCheck(), emailCheck(), passwordCheck(), agreeCheck()], async () => {
+      if ((await signUpWithEmail(email, password, name)) === 'code-sent') go('confirm');
     });
   const confirm = () => run([codeCheck()], () => confirmEmail(email, code));
   const forgot = () =>
@@ -192,13 +219,25 @@ export function EmailSignIn() {
 
       {step === 'sign-up' ? (
         <SignInForm onSubmit={submit} style={styles.step}>
+          {nameField}
           {emailField}
           {passwordField(true)}
+          <Group testID="email-agree">
+            <ChoiceRow
+              role="checkbox"
+              label={COPY.agree}
+              meta={COPY.agreeMeta}
+              checked={agreed}
+              onPress={() => setAgreed((on) => !on)}
+              disabled={busy}
+              testID="email-agree-box"
+            />
+          </Group>
           {loose}
           <Button
             label={busy ? COPY.signUpBusy : COPY.signUp}
             disabled={busy}
-onPress={() => void signUp()}
+            onPress={() => void signUp()}
             testID="email-sign-up-button"
           />
           <TextButton label={COPY.toSignIn} align="start" onPress={() => go('sign-in')} disabled={busy} />
@@ -250,6 +289,17 @@ onPress={() => void forgot()}
           <HiddenUsername email={email.trim()} />
           {codeField(COPY.resetBody(email.trim()))}
           {passwordField(true)}
+          <Group testID="email-agree">
+            <ChoiceRow
+              role="checkbox"
+              label={COPY.agree}
+              meta={COPY.agreeMeta}
+              checked={agreed}
+              onPress={() => setAgreed((on) => !on)}
+              disabled={busy}
+              testID="email-agree-box"
+            />
+          </Group>
           {loose}
           {told}
           <Button

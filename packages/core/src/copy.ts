@@ -101,7 +101,7 @@ export const SIGN_IN_COPY = {
   microsoftBusy: "Opening Microsoft…",
   eitherAccount: "Your house’s Johns are kept with the account you sign in with.",
   sameAccount: "Already in a house? Use the account you joined with.",
-  terms: "By continuing you agree to the Terms and the Privacy Policy, and to the house rules your housemates set.",
+  terms: "By continuing you agree to the Terms and the Privacy Policy, and to the house rules your housemates set, and say you’re 13 or older.",
   privacy: "Privacy",
   termsLink: "Terms",
   failed: (provider: SignInProvider) => `${provider} didn’t finish signing you in. Try again.`,

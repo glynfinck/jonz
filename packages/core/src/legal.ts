@@ -65,7 +65,7 @@ export const PRIVACY_POLICY: LegalPage = {
     {
       heading: "What we keep",
       body: [
-        "Your account: your name, your email address, a profile photo if your account has one, and an ID from the account you sign in with. We never see your password.",
+        "Your account: your name, your email address, a profile photo if your account has one, an ID from the account you sign in with, and which Terms you agreed to and when. We never see your password.",
         "Your house: its name, currency, time zone and rules; the Johns, who was given which, and when each was ticked; any photo you add to a tick; disputes, votes and reactions; time away and groups; the points table; the Stake ledger of what housemates owe each other; and the history of changes admins make.",
         "Reminders: if you turn them on, the address your browser or phone gives us to send notifications to, and which reminders you want and when.",
         "The House Pass: which plan your house has, who bought it, and the IDs Stripe gives the purchase. We never see or store card details.",

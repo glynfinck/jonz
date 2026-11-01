@@ -1,4 +1,4 @@
-import { cleanCode, cleanEmail } from '@app/core';
+import { cleanCode, cleanEmail, LEGAL } from '@app/core';
 
 import { supabase } from './supabase';
 
@@ -16,8 +16,14 @@ export async function signInWithEmail(email: string, password: string): Promise<
  * Makes the account and emails its code. Resolves `signed-in` where an
  * address needs no confirming (local development), else `code-sent`.
  */
-export async function signUpWithEmail(email: string, password: string): Promise<'signed-in' | 'code-sent'> {
-  const { data, error } = await supabase.auth.signUp({ email: cleanEmail(email), password });
+export async function signUpWithEmail(email: string, password: string, name: string): Promise<'signed-in' | 'code-sent'> {
+  // display_name becomes the new profile's name (the on_auth_user_created trigger);
+  // the Terms they ticked, and when, stay with the account.
+  const { data, error } = await supabase.auth.signUp({
+    email: cleanEmail(email),
+    password,
+    options: { data: { display_name: name.trim(), terms_agreed: LEGAL.updated, terms_agreed_at: new Date().toISOString() } },
+  });
   if (error) throw error;
   return data.session ? 'signed-in' : 'code-sent';
 }

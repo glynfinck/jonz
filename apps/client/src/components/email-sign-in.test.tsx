@@ -56,6 +56,8 @@ it('makes an account, then checks the emailed code as soon as its sixth digit is
   (confirmEmail as jest.Mock).mockResolvedValue(undefined);
   await render(<EmailSignIn />);
   await fireEvent.press(screen.getByRole('button', { name: COPY.toSignUp }));
+  await type('email-name', 'Sam');
+  await fireEvent.press(screen.getByTestId('email-agree-box'));
   await type('email-address', 'sam@example.com');
   await type('email-password', 'short');
   await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
@@ -63,7 +65,7 @@ it('makes an account, then checks the emailed code as soon as its sixth digit is
   expect(screen.getByRole('alert')).toHaveTextContent(COPY.shortPassword);
   await type('email-password', 'long enough');
   await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
-  expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'long enough');
+  expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'long enough', 'Sam');
   expect(screen.getByText(COPY.codeHint('sam@example.com'))).toBeOnTheScreen();
   expect(screen.getByText(COPY.existingHint)).toBeOnTheScreen();
   await type('email-code', '123 45');
@@ -80,6 +82,8 @@ it('sends a new sign-up code, and says a wrong one is wrong', async () => {
   (resendSignUpCode as jest.Mock).mockResolvedValue(undefined);
   await render(<EmailSignIn />);
   await fireEvent.press(screen.getByRole('button', { name: COPY.toSignUp }));
+  await type('email-name', 'Sam');
+  await fireEvent.press(screen.getByTestId('email-agree-box'));
   await type('email-address', 'sam@example.com');
   await type('email-password', 'long enough');
   await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
@@ -113,6 +117,8 @@ it('says email sign-in is not open yet, where production still has it off', asyn
   (signUpWithEmail as jest.Mock).mockRejectedValue({ code: 'signup_disabled', status: 422 });
   await render(<EmailSignIn />);
   await fireEvent.press(screen.getByRole('button', { name: COPY.toSignUp }));
+  await type('email-name', 'Sam');
+  await fireEvent.press(screen.getByTestId('email-agree-box'));
   await type('email-address', 'sam@example.com');
   await type('email-password', 'long enough');
   await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
@@ -125,11 +131,42 @@ it('fills like any login: the keyboard sends it, and password managers know whic
   expect(screen.getByTestId('email-address')).toHaveProp('autoComplete', 'username');
   expect(screen.getByTestId('email-password')).toHaveProp('autoComplete', 'current-password');
   await fireEvent.press(screen.getByTestId('to-sign-up'));
+  await type('email-name', 'Sam');
+  await fireEvent.press(screen.getByTestId('email-agree-box'));
   const password = screen.getByTestId('email-password');
   expect(password).toHaveProp('autoComplete', 'new-password');
   expect(password).toHaveProp('passwordRules', 'minlength: 8;');
   await type('email-address', 'sam@example.com');
   await type('email-password', 'correct horse');
   await fireEvent(screen.getByTestId('email-password'), 'submitEditing');
-  expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'correct horse');
+  expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'correct horse', 'Sam');
+});
+
+it('asks a new account for the name housemates will see', async () => {
+  await render(<EmailSignIn />);
+  await fireEvent.press(screen.getByTestId('to-sign-up'));
+  expect(screen.getByTestId('email-name')).toHaveProp('autoComplete', 'name');
+  await type('email-address', 'sam@example.com');
+  await type('email-password', 'correct horse');
+  await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
+  expect(signUpWithEmail).not.toHaveBeenCalled();
+  expect(screen.getByText(COPY.noName)).toBeOnTheScreen();
+});
+
+it('makes an account only once the Terms box is ticked, and keeps which Terms', async () => {
+  (signUpWithEmail as jest.Mock).mockResolvedValue('code-sent');
+  await render(<EmailSignIn />);
+  await fireEvent.press(screen.getByTestId('to-sign-up'));
+  await type('email-name', 'Sam');
+  await type('email-address', 'sam@example.com');
+  await type('email-password', 'correct horse');
+  const box = screen.getByRole('checkbox', { name: new RegExp(COPY.agree) });
+  expect(box).not.toBeChecked();
+  await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
+  expect(signUpWithEmail).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(COPY.noAgree);
+  await fireEvent.press(box);
+  expect(box).toBeChecked();
+  await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
+  expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'correct horse', 'Sam');
 });
