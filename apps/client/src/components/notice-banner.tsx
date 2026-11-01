@@ -2,12 +2,13 @@ import { BIN_NIGHT, NOTICE_COPY, safeNoticeLink, type Notice } from '@app/core';
 import { router } from 'expo-router';
 import { GiftIcon, NewspaperIcon, TriangleAlertIcon, WifiOffIcon, XIcon, type LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HazardTape } from '@/components/hazard-tape';
+import { IconButton } from '@/components/icon-button';
 import { useNotices } from '@/hooks/use-notices';
-import { CONTENT_MAX, GROUP_RADIUS, GUTTER, SPACE, TAP, useTheme } from '@/theme';
+import { CONTENT_MAX, GROUP_RADIUS, GUTTER, SPACE, useTheme } from '@/theme';
 
 // The band at the top of every screen that carries a notice from the owner
 // (an outage, an offer, news) or says Jonz can't be reached. One at a time;
@@ -155,16 +156,7 @@ export function NoticeView({
           ) : null}
         </Text>
         {onClose ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={NOTICE_COPY.close}
-            onPress={onClose}
-            hitSlop={4}
-            style={styles.close}
-            testID="notice-close"
-          >
-            <XIcon size={20} color={look.ink} strokeWidth={2.5} />
-          </Pressable>
+          <IconButton icon={XIcon} label={NOTICE_COPY.close} onPress={onClose} ink={look.ink} testID="notice-close" />
         ) : null}
       </View>
     </View>
@@ -188,10 +180,4 @@ const styles = StyleSheet.create({
   icon: { marginTop: SPACE.md },
   words: { flex: 1, minWidth: 0, paddingVertical: SPACE.sm },
   link: { textDecorationLine: 'underline' },
-  close: {
-    width: TAP,
-    height: TAP,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

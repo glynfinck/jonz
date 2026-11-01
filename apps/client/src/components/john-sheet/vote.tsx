@@ -6,6 +6,7 @@ import { castVote } from '@/api/disputes';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
+import { ButtonRow } from '@/components/button-row';
 import { Body, Meta } from '@/components/text';
 import { useMove } from '@/hooks/use-move';
 import { useUndoOffer } from '@/hooks/use-undo-offer';
@@ -62,7 +63,7 @@ function SheetVote({ houseId, dispute, onVoted }: { houseId: string; dispute: Di
   return (
     <>
       <View style={styles.pair}>
-        <View style={styles.half}>
+        <ButtonRow>
           <Button
             variant="outline"
             chosen={dispute.myVote === false}
@@ -72,8 +73,6 @@ function SheetVote({ houseId, dispute, onVoted }: { houseId: string; dispute: Di
             onPress={() => void vote(false)}
             testID="vote-fine"
           />
-        </View>
-        <View style={styles.half}>
           <Button
             variant="outline"
             chosen={dispute.myVote === true}
@@ -83,7 +82,7 @@ function SheetVote({ houseId, dispute, onVoted }: { houseId: string; dispute: Di
             onPress={() => void vote(true)}
             testID="vote-not-done"
           />
-        </View>
+        </ButtonRow>
       </View>
       {move.problem ? <Alert message={move.problem} /> : null}
     </>
@@ -93,6 +92,5 @@ function SheetVote({ houseId, dispute, onVoted }: { houseId: string; dispute: Di
 const styles = StyleSheet.create({
   reason: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.md },
   shrink: { flexShrink: 1 },
-  pair: { flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE.sm },
-  half: { flex: 1 },
+  pair: { marginTop: SPACE.sm },
 });

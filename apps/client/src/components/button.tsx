@@ -3,7 +3,8 @@ import { Link, type Href } from 'expo-router';
 import { useState, type ComponentType } from 'react';
 import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 
-import { RADIUS, SPACE, TAP, useTheme } from '@/theme';
+import { useRowFit } from '@/components/button-row';
+import { ICON, ICON_ONLY, RADIUS, SPACE, TAP, useTheme } from '@/theme';
 
 type Variant = 'primary' | 'outline' | 'ghost' | 'hazard';
 
@@ -23,7 +24,12 @@ export type ButtonIcon = ComponentType<{ size?: number; color?: string; 'aria-hi
  * the web). `iconOnly` shows just the icon, square, and `label` still names
  * it for screen readers. `iconAfter` puts the icon after the words, for a
  * way on (a chevron pointing forward). `spoken` is what a screen reader hears instead of
- * the label, when the label leans on the row beside it.
+ * the label, when the label leans on the row beside it. `expanded` says a
+ * panel or menu it opens is open (`aria-expanded`). `ink` recolours a ghost
+ * button's icon and words for a coloured band (a notice), from the theme.
+ * Inside a `ButtonRow` it takes an equal share of the line, or the full
+ * width when the row stacks; its words wrap rather than get cut. Screens
+ * never restyle a button: use `ButtonRow` to place buttons together.
  */
 export function Button({
   label,
@@ -36,6 +42,8 @@ export function Button({
   iconAfter = false,
   chosen,
   spoken,
+  expanded,
+  ink,
   testID,
 }: {
   label: string;
@@ -50,11 +58,17 @@ export function Button({
   /** One of a pair to pick from: whether this is the one picked. */
   chosen?: boolean;
   spoken?: string;
+  /** For a button that opens a panel or menu: whether it's open. */
+  expanded?: boolean;
+  /** A ghost button's icon and words on a coloured band: a colour from the theme. */
+  ink?: string;
   testID?: string;
 }) {
   const { colors, type } = useTheme();
   const [pressed, setPressed] = useState(false);
-  const look = chosen
+  const row = useRowFit();
+  const fit = row?.fit ?? null;
+  const base = chosen
     ? { background: colors.secondary, ink: colors.foreground, edge: colors.foreground, icon: colors.foreground }
     : {
         primary: { background: colors.hivis, ink: colors.onHivis, edge: colors.hivis, icon: colors.onHivis },
@@ -62,15 +76,18 @@ export function Button({
         ghost: { background: 'transparent', ink: colors.foreground, edge: 'transparent', icon: colors.foreground },
         hazard: { background: 'transparent', ink: colors.foreground, edge: colors.hazard, icon: colors.hazard },
       }[variant];
+  const look = ink ? { ...base, ink, icon: ink } : base;
   // A toggle's state: the web hears aria-pressed, which React Native lacks.
   const chosenState =
     chosen === undefined ? {} : Platform.OS === 'web' ? ({ 'aria-pressed': chosen } as object) : { 'aria-selected': chosen };
+  const expandedState = expanded === undefined ? {} : ({ 'aria-expanded': expanded } as object);
 
   const button = (
     <Pressable
       accessibilityRole={href ? 'link' : 'button'}
       aria-disabled={disabled}
       {...chosenState}
+      {...expandedState}
       accessibilityLabel={iconOnly ? label : spoken}
       disabled={disabled}
       onPress={onPress}
@@ -82,6 +99,8 @@ export function Button({
       style={StyleSheet.flatten([
         styles.button,
         iconOnly && styles.square,
+        fit === 'share' && styles.share,
+        fit === 'full' && styles.full,
         {
           backgroundColor: pressed && look.background === 'transparent' ? withAlpha(colors.foreground, 0.06) : look.background,
           borderColor: look.edge,
@@ -89,9 +108,23 @@ export function Button({
         },
       ])}
     >
-      {Icon && !iconAfter ? <Icon size={20} color={look.icon} aria-hidden /> : null}
-      {iconOnly ? null : <Text style={[type.rowTitle, { color: look.ink }]}>{label}</Text>}
-      {Icon && iconAfter ? <Icon size={20} color={look.icon} aria-hidden /> : null}
+      {Icon && !iconAfter ? <Icon size={iconOnly ? ICON_ONLY : ICON} color={look.icon} aria-hidden /> : null}
+      {iconOnly ? null : (
+        <Text
+          style={[type.rowTitle, styles.words, { color: look.ink }]}
+          // Sharing a row, words on a second line mean the row should stack.
+          onLayout={
+            fit === 'share'
+              ? (event) => {
+                  if (event.nativeEvent.layout.height > (type.rowTitle.lineHeight ?? TAP) * 1.5) row?.wrapped();
+                }
+              : undefined
+          }
+        >
+          {label}
+        </Text>
+      )}
+      {Icon && iconAfter ? <Icon size={ICON} color={look.icon} aria-hidden /> : null}
     </Pressable>
   );
   return href ? (
@@ -115,4 +148,10 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
   },
   square: { minWidth: TAP, paddingHorizontal: SPACE.md },
+  // In a ButtonRow: an equal share of the line, as tall as the tallest.
+  share: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, alignSelf: 'stretch' },
+  // In a stacked ButtonRow: the row's whole width.
+  full: { alignSelf: 'stretch' },
+  // Words that don't fit wrap inside the button, centred, never cut.
+  words: { flexShrink: 1, textAlign: 'center' },
 });

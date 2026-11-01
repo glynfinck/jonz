@@ -11,7 +11,7 @@
     "export:web": "expo export -p web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest && node --test eslint-rules/jonz.test.js"
   },
   "dependencies": {
     "@app/core": "*",

@@ -131,7 +131,9 @@ permanent once a store has seen them.
   `pageTitle`, nothing on a phone), `Section`, `Group`, `Row` (the one row,
   everywhere), `Fold`, `Card` (at most one stand-alone card a screen),
   `TickBox`, `StatusMark` and `Chip` (core's `STATUS_MARK`, drawn),
-  `LidBar`, `Avatar`, `CountBadge`, `Button`, `TextButton`, `TextLink`,
+  `LidBar`, `Avatar`, `CountBadge`, `Button`, `ButtonRow` (buttons side by
+  side: equal, stacking when narrow), `IconButton` (every icon-only control),
+  `TextButton`, `TextLink`,
   `Field`, `Alert`, `Segmented`, `EmptyState`, `Reading` and `ReadFailed`
   (a first read on its way, or "Try again"), toasts, and the brand pieces
   (`Wordmark`, `HazardTape`, `SignInPanel`). `john-row.tsx` is a John as a

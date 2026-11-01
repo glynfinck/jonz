@@ -37,6 +37,8 @@ import { AwayDates, type DateRange } from '@/components/setup/away-dates';
 import { Sheet } from '@/components/sheet';
 import { Body, Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
+import { ButtonRow } from '@/components/button-row';
+import { IconButton } from '@/components/icon-button';
 import { useMove } from '@/hooks/use-move';
 import { useUndoOffer } from '@/hooks/use-undo-offer';
 import { FONT, RADIUS, SPACE, useTheme, type Theme } from '@/theme';
@@ -79,22 +81,18 @@ export function AwayMonth({
       <GroupItem testID="away-month">
         <View style={styles.calendar}>
           <View style={styles.head}>
-            <Button
-              variant="ghost"
+            <IconButton
               icon={ChevronLeftIcon}
               label={AWAY_COPY.earlierMonth}
-              iconOnly
               disabled={month <= today.slice(0, 7)}
               onPress={() => setMonth((was) => shiftMonth(was, -1))}
             />
             <Text style={[type.rowTitle, styles.month]} accessibilityLiveRegion="polite">
               {monthLabel(month)}
             </Text>
-            <Button
-              variant="ghost"
+            <IconButton
               icon={ChevronRightIcon}
               label={AWAY_COPY.laterMonth}
-              iconOnly
               onPress={() => setMonth((was) => shiftMonth(was, 1))}
             />
           </View>
@@ -236,10 +234,10 @@ function DaySheet({
         </Group>
       </Section>
       {day ? (
-        <View style={styles.steps}>
+        <ButtonRow>
           <Button variant="ghost" icon={ChevronLeftIcon} label={AWAY_COPY.dayBefore} onPress={() => onDay(addDaysTo(day, -1))} />
           <Button variant="ghost" icon={ChevronRightIcon} label={AWAY_COPY.dayAfter} iconAfter onPress={() => onDay(addDaysTo(day, 1))} />
-        </View>
+        </ButtonRow>
       ) : null}
     </Sheet>
   );
@@ -378,6 +376,5 @@ const styles = StyleSheet.create({
   swatch: { width: 14, height: 14, borderRadius: 4 },
   home: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md },
   homeItem: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  steps: { flexDirection: 'row', justifyContent: 'space-between' },
   start: { alignItems: 'flex-start' },
 });
