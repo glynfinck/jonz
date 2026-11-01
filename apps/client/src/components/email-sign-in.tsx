@@ -3,11 +3,12 @@ import {
   EMAIL_SIGN_IN_COPY as COPY,
   emailAuthProblem,
   emailLooksRight,
+  PASSWORD_MIN,
   passwordProblem,
   type EmailStep,
 } from '@app/core';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import {
   confirmEmail,
@@ -21,9 +22,13 @@ import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
 import { CodeBoxes } from '@/components/code-boxes';
 import { Field } from '@/components/field';
+import { HiddenUsername, SignInForm } from '@/components/sign-in-form';
 import { Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
 import { SPACE, useTheme } from '@/theme';
+
+/** Enter on a phone's keyboard; the web form handles its own, so it isn't sent twice. */
+const onPhone = (act: () => void) => (Platform.OS === 'web' ? undefined : act);
 
 type Problem = { field?: 'email' | 'password' | 'code'; message: string };
 
@@ -95,8 +100,12 @@ export function EmailSignIn() {
       keyboardType="email-address"
       autoCapitalize="none"
       autoCorrect={false}
-      autoComplete="email"
-      textContentType="emailAddress"
+      spellCheck={false}
+      // "username", not "email": what password managers file a login under.
+      autoComplete="username"
+      textContentType="username"
+      nativeID="email"
+      returnKeyType={step === 'forgot' ? 'send' : 'next'}
       editable={!busy}
       testID="email-address"
     />
@@ -123,12 +132,37 @@ export function EmailSignIn() {
       problem={fieldProblem('password')}
       secureTextEntry
       autoCapitalize="none"
+      autoCorrect={false}
+      spellCheck={false}
       autoComplete={fresh ? 'new-password' : 'current-password'}
       textContentType={fresh ? 'newPassword' : 'password'}
+      // So iOS's suggested strong password passes our own check.
+      passwordRules={fresh ? `minlength: ${PASSWORD_MIN};` : undefined}
+      nativeID={fresh ? 'new-password' : 'password'}
+      returnKeyType="go"
+      onSubmitEditing={onPhone(submit)}
       editable={!busy}
       testID="email-password"
     />
   );
+  const signIn = () => run([emailCheck(), password ? null : passwordCheck()], () => signInWithEmail(email, password));
+  const signUp = () =>
+    run([emailCheck(), passwordCheck()], async () => {
+      if ((await signUpWithEmail(email, password)) === 'code-sent') go('confirm');
+    });
+  const confirm = () => run([codeCheck()], () => confirmEmail(email, code));
+  const forgot = () =>
+    run([emailCheck()], async () => {
+      await sendPasswordReset(email);
+      go('reset');
+    });
+  const reset = () => run([codeCheck(), passwordCheck()], () => resetPassword(email, code, password));
+  /** What Enter (or a keyboard's Go) does on this step. */
+  function submit() {
+    if (busy) return;
+    void { 'sign-in': signIn, 'sign-up': signUp, confirm, forgot, reset }[step]();
+  }
+
   const loose = problem && !problem.field ? <Alert message={problem.message} /> : null;
   const told = note ? <Meta>{note}</Meta> : null;
 
@@ -141,42 +175,38 @@ export function EmailSignIn() {
       </View>
 
       {step === 'sign-in' ? (
-        <>
+        <SignInForm onSubmit={submit} style={styles.step}>
           {emailField}
           {passwordField(false)}
           {loose}
           <Button
             label={busy ? COPY.signInBusy : COPY.signIn}
             disabled={busy}
-            onPress={() => void run([emailCheck(), password ? null : passwordCheck()], () => signInWithEmail(email, password))}
+            onPress={() => void signIn()}
             testID="email-sign-in-button"
           />
           <TextButton label={COPY.toForgot} align="start" onPress={() => go('forgot')} disabled={busy} />
           <TextButton label={COPY.toSignUp} align="start" onPress={() => go('sign-up')} disabled={busy} testID="to-sign-up" />
-        </>
+        </SignInForm>
       ) : null}
 
       {step === 'sign-up' ? (
-        <>
+        <SignInForm onSubmit={submit} style={styles.step}>
           {emailField}
           {passwordField(true)}
           {loose}
           <Button
             label={busy ? COPY.signUpBusy : COPY.signUp}
             disabled={busy}
-            onPress={() =>
-              void run([emailCheck(), passwordCheck()], async () => {
-                if ((await signUpWithEmail(email, password)) === 'code-sent') go('confirm');
-              })
-            }
+onPress={() => void signUp()}
             testID="email-sign-up-button"
           />
           <TextButton label={COPY.toSignIn} align="start" onPress={() => go('sign-in')} disabled={busy} />
-        </>
+        </SignInForm>
       ) : null}
 
       {step === 'confirm' ? (
-        <>
+        <SignInForm onSubmit={submit} style={styles.step}>
           {codeField(COPY.codeHint(email.trim()), (typed) => void run([], () => confirmEmail(email, typed)))}
           <Meta>{COPY.existingHint}</Meta>
           {loose}
@@ -184,7 +214,7 @@ export function EmailSignIn() {
           <Button
             label={busy ? COPY.confirmBusy : COPY.confirm}
             disabled={busy}
-            onPress={() => void run([codeCheck()], () => confirmEmail(email, code))}
+            onPress={() => void confirm()}
             testID="email-confirm-button"
           />
           <TextButton
@@ -197,31 +227,27 @@ export function EmailSignIn() {
             })}
           />
           <TextButton label={COPY.back} align="start" onPress={() => go('sign-in')} disabled={busy} />
-        </>
+        </SignInForm>
       ) : null}
 
       {step === 'forgot' ? (
-        <>
+        <SignInForm onSubmit={submit} style={styles.step}>
           <Meta>{COPY.forgotBody}</Meta>
           {emailField}
           {loose}
           <Button
             label={busy ? COPY.sendResetBusy : COPY.sendReset}
             disabled={busy}
-            onPress={() =>
-              void run([emailCheck()], async () => {
-                await sendPasswordReset(email);
-                go('reset');
-              })
-            }
+onPress={() => void forgot()}
             testID="email-forgot-button"
           />
           <TextButton label={COPY.back} align="start" onPress={() => go('sign-in')} disabled={busy} />
-        </>
+        </SignInForm>
       ) : null}
 
       {step === 'reset' ? (
-        <>
+        <SignInForm onSubmit={submit} style={styles.step}>
+          <HiddenUsername email={email.trim()} />
           {codeField(COPY.resetBody(email.trim()))}
           {passwordField(true)}
           {loose}
@@ -229,7 +255,7 @@ export function EmailSignIn() {
           <Button
             label={busy ? COPY.resetBusy : COPY.reset}
             disabled={busy}
-            onPress={() => void run([codeCheck(), passwordCheck()], () => resetPassword(email, code, password))}
+            onPress={() => void reset()}
             testID="email-reset-button"
           />
           <TextButton
@@ -242,7 +268,7 @@ export function EmailSignIn() {
             })}
           />
           <TextButton label={COPY.back} align="start" onPress={() => go('sign-in')} disabled={busy} />
-        </>
+        </SignInForm>
       ) : null}
     </View>
   );
@@ -250,6 +276,7 @@ export function EmailSignIn() {
 
 const styles = StyleSheet.create({
   email: { gap: SPACE.sm, marginTop: SPACE.sm },
+  step: { gap: SPACE.sm },
   or: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   line: { flex: 1, height: StyleSheet.hairlineWidth },
 });
