@@ -1,4 +1,4 @@
-import { HISTORY_COPY, historyItems, type ActionRow } from '@app/core';
+import { HISTORY_COPY, historyItems, LIST_COPY, type ActionRow } from '@app/core';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { loadHouse } from '@/api/board';
@@ -117,4 +117,28 @@ it('says what lands here when nothing has yet', async () => {
   (loadHistory as jest.Mock).mockResolvedValue([]);
   await renderPages({ 'house/history': HistoryScreen }, '/house/history');
   expect(await screen.findByTestId('history-empty')).toHaveTextContent(new RegExp(HISTORY_COPY.title));
+  // Nothing to say "That's everything" under.
+  expect(screen.queryByTestId('history-foot')).toBeNull();
+});
+
+it('says when it has everything, under the oldest move', async () => {
+  await open();
+  expect(screen.getByTestId('history-foot')).toHaveTextContent(LIST_COPY.everything);
+});
+
+it('reads older moves as you scroll near the end, from the last one shown', async () => {
+  // A full page today, then one move from the day the house started.
+  const page = Array.from({ length: 60 }, (_, i) => row({ id: `p${i}`, created_at: new Date(NOW.getTime() - (i + 1) * 60_000).toISOString() }));
+  const last = new Date(page[59].created_at);
+  (loadHistory as jest.Mock).mockImplementation(async (_house: string, before?: Date) =>
+    historyItems(before ? [row({ id: 'old', data: { name: 'Dishes' }, created_at: '2026-09-03T10:00:00Z', reach: null })] : page),
+  );
+  await open();
+  expect(screen.getByTestId('history-foot')).toHaveTextContent(/Showing back to Thu 29 Oct/);
+  await fireEvent.scroll(screen.getByTestId('page-scroll'), {
+    nativeEvent: { contentOffset: { y: 300 }, contentSize: { height: 1200 }, layoutMeasurement: { height: 800 } },
+  });
+  await waitFor(() => expect(loadHistory).toHaveBeenLastCalledWith('h1', last));
+  expect(await screen.findByText(/Dishes/)).toBeOnTheScreen();
+  expect(screen.getByTestId('history-foot')).toHaveTextContent(LIST_COPY.everything);
 });

@@ -1,4 +1,4 @@
-import { FOCUS_SHELL_COPY, REACTION_LABEL, SECTION_LABEL, WALL_COPY, WALL_FEED_COPY, wallEvents, type WallRow } from '@app/core';
+import { FOCUS_SHELL_COPY, LIST_COPY, REACTION_LABEL, SECTION_LABEL, WALL_COPY, WALL_FEED_COPY, wallEvents, type WallRow } from '@app/core';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { loadHouse } from '@/api/board';
@@ -180,16 +180,27 @@ it('puts a reaction back and says why under the row it was made on', async () =>
   await waitFor(() => expect(within(bath).getByTestId('nice-one')).toBeSelected());
 });
 
-it('reads older days on request, from where the last one ended', async () => {
+it('reads older days as you scroll near the end, from where the last one ended', async () => {
   await open();
-  expect(screen.queryByText(WALL_FEED_COPY.everything)).toBeNull();
-  await fireEvent.press(screen.getByTestId('load-older'));
-  expect(loadWall).toHaveBeenLastCalledWith('h1', 'priya', 40, OLDER);
+  const foot = screen.getByTestId('wall-foot');
+  expect(foot).toHaveTextContent(/Showing back to \w{3} \d+ \w{3}/);
+  expect(screen.queryByText(LIST_COPY.everything)).toBeNull();
+  await fireEvent.scroll(screen.getByTestId('page-scroll'), {
+    nativeEvent: { contentOffset: { y: 300 }, contentSize: { height: 1200 }, layoutMeasurement: { height: 800 } },
+  });
+  await waitFor(() => expect(loadWall).toHaveBeenLastCalledWith('h1', 'priya', 40, OLDER));
   expect(await screen.findByText(/September is closed/)).toBeOnTheScreen();
   expect(day('Thu 1 Oct').getAllByTestId('wall-event')).toHaveLength(1);
   // Nothing older than that.
-  expect(screen.getByText(WALL_FEED_COPY.everything)).toBeOnTheScreen();
-  expect(screen.queryByTestId('load-older')).toBeNull();
+  expect(screen.getByTestId('wall-foot')).toHaveTextContent(LIST_COPY.everything);
+  expect(screen.queryByTestId('wall-foot-more')).toBeNull();
+});
+
+it('reads older days from Show more too, for a keyboard or a short page', async () => {
+  await open();
+  await fireEvent.press(screen.getByTestId('wall-foot-more'));
+  expect(loadWall).toHaveBeenLastCalledWith('h1', 'priya', 40, OLDER);
+  expect(await screen.findByText(LIST_COPY.everything)).toBeOnTheScreen();
 });
 
 it('says what lands here before anything has', async () => {

@@ -1,4 +1,4 @@
-import { ADMIN_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
+import { ADMIN_COPY, LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
 import * as Clipboard from 'expo-clipboard';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { useWindowDimensions } from 'react-native';
@@ -373,12 +373,13 @@ describe('the audit log', () => {
     );
     await renderPages(ROUTES, '/admin/audit');
     await untilRead();
-    expect(screen.getByTestId('audit-older')).toBeVisible();
+    expect(screen.getByTestId('audit-foot')).toHaveTextContent(/Showing back to/);
     await fireEvent.scroll(screen.getByTestId('page-scroll'), {
       nativeEvent: { contentOffset: { y: 300 }, contentSize: { height: 1200 }, layoutMeasurement: { height: 800 } },
     });
     await waitFor(() => expect(auditPage).toHaveBeenLastCalledWith(79));
     expect(await screen.findByTestId('audit-row-12')).toBeVisible();
-    expect(screen.queryByTestId('audit-older')).toBeNull();
+    expect(screen.getByTestId('audit-foot')).toHaveTextContent(LIST_COPY.everything);
+    expect(screen.queryByTestId('audit-foot-more')).toBeNull();
   });
 });

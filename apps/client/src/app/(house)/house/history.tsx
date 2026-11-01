@@ -1,6 +1,7 @@
 import { HISTORY_COPY, SECTION_LABEL } from '@app/core';
 
 import { HistoryList, type HistoryScene } from '@/components/house/history-list';
+import { nearEnd, type ListMore } from '@/components/list-foot';
 import { PageTitle } from '@/components/page-title';
 import { Reading, ReadFailed } from '@/components/read-state';
 import { Screen } from '@/components/screen';
@@ -24,6 +25,12 @@ function HistoryFor({ houseId, userId }: { houseId: string; userId: string }) {
   const { query, view } = useHouse(houseId, userId);
   const history = useHistory(houseId);
   const { refreshing, pull } = usePull(houseId, history.refetch);
+  const more: ListMore = {
+    has: history.hasNextPage,
+    busy: history.isFetchingNextPage,
+    failed: history.isFetchNextPageError,
+    load: () => void history.fetchNextPage(),
+  };
 
   let body;
   if (!history.data || !view) {
@@ -54,12 +61,7 @@ function HistoryFor({ houseId, userId }: { houseId: string; userId: string }) {
       <HistoryList
         items={history.data.pages.flat()}
         scene={scene}
-        more={{
-          has: history.hasNextPage,
-          busy: history.isFetchingNextPage,
-          failed: history.isFetchNextPageError,
-          load: () => void history.fetchNextPage(),
-        }}
+        more={more}
       />
     );
   }
@@ -69,6 +71,7 @@ function HistoryFor({ houseId, userId }: { houseId: string; userId: string }) {
       bar={<TitleBar title={HISTORY_COPY.title} back="/house" backLabel={SECTION_LABEL.house} />}
       refreshing={refreshing}
       onRefresh={pull}
+      onNearEnd={view ? nearEnd(more) : undefined}
       testID="history-screen"
     >
       <PageTitle page={HISTORY_COPY.title} />

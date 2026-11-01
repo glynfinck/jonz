@@ -24,7 +24,7 @@ export function useWallLatest(houseId: string, userId: string, count: number) {
 
 /**
  * The whole Wall, a page at a time, newest first: `fetchNextPage` reads the
- * page of events older than the last one shown ("Load older").
+ * page of events older than the last one shown, as you scroll near the end.
  */
 export function useWallFeed(houseId: string, userId: string) {
   return useInfiniteQuery({

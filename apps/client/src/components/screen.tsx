@@ -6,12 +6,31 @@ import {
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 
 import { ASIDE, COLUMNS_MIN, CONTENT_MAX, GUTTER, MAIN_MAX, RAIL, SECTION_GAP, useTheme, WIDE } from '@/theme';
 
 const ContentWidth = createContext(CONTENT_MAX);
 const TwoColumns = createContext(false);
+
+/** What scrolling the page does, handed to the main column when two columns each scroll on their own. */
+interface PageScroll {
+  onNearEnd?: () => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+}
+const PageScrollContext = createContext<PageScroll>({});
+
+/** Calls `onNearEnd` once a scroll comes within a screen of the end, where a timeline reads its next page. */
+function nearEnd(onNearEnd?: () => void) {
+  return onNearEnd
+    ? ({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (contentOffset.y + 2 * layoutMeasurement.height >= contentSize.height) onNearEnd();
+      }
+    : undefined;
+}
 
 /** How wide the screen's content may get: a phone's title bar lines up with it, and the Table fits its rows' words to it. */
 export function useContentWidth(): number {
@@ -33,8 +52,9 @@ export function useColumns(): boolean {
  * the page instead once the page itself is COLUMNS_MIN wide, a laptop's
  * beside the rail, and its content lays itself out in Columns. The page
  * measures itself, so it goes back to one column when something beside it
- * (the chat with Jonz) takes the room. The title bar keeps clear of the
- * notch; the tabs keep clear of the home bar.
+ * (the chat with Jonz) takes the room. In two columns each scrolls on its
+ * own (Columns), so the page itself holds still under the title bar. The
+ * title bar keeps clear of the notch; the tabs keep clear of the home bar.
  */
 export function Screen({
   children,
@@ -73,21 +93,16 @@ export function Screen({
             testID="page-scroll"
             style={styles.scroll}
             scrollEventThrottle={onNearEnd ? 200 : undefined}
-            onScroll={
-              onNearEnd
-                ? ({ nativeEvent: { contentOffset, contentSize, layoutMeasurement } }) => {
-                    if (contentOffset.y + 2 * layoutMeasurement.height >= contentSize.height) onNearEnd();
-                  }
-                : undefined
-            }
+            onScroll={nearEnd(onNearEnd)}
             contentContainerStyle={[styles.page, { maxWidth: max }, windowWidth >= WIDE && styles.leading, two && styles.filled]}
             refreshControl={
-              onRefresh ? (
+              // In two columns the main column pulls to refresh, as it's the one that scrolls.
+              onRefresh && !two ? (
                 <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor={colors.foreground} />
               ) : undefined
             }
           >
-            {children}
+            <PageScrollContext.Provider value={{ onNearEnd, refreshing, onRefresh }}>{children}</PageScrollContext.Provider>
           </ScrollView>
         </View>
       </TwoColumns.Provider>
@@ -104,21 +119,44 @@ export function Screen({
  * the left: ASIDE wide inside a GUTTER each side. Only for a page in two
  * columns (useColumns); a page in one keeps its phone order, which these two
  * lists may not follow.
+ *
+ * Each column scrolls on its own, as a mail app's list and message do: a
+ * long list never carries the panel beside it away, and a long panel can be
+ * read to its end without losing your place in the list. The main column
+ * does what scrolling the page would (reads more near the end, pulls to
+ * refresh). The two fill the page under the title bar, laid over the
+ * page's own scroll, which then has nothing to scroll.
  */
 export function Columns({ main, side }: { main: ReactNode; side: ReactNode }) {
   const { colors } = useTheme();
+  const scroll = useContext(PageScrollContext);
   return (
     <View style={styles.columns} testID="columns">
-      <ContentWidth.Provider value={CONTENT_MAX}>
-        <View style={styles.main} testID="column-main">
-          {main}
-        </View>
-      </ContentWidth.Provider>
-      <ContentWidth.Provider value={ASIDE}>
-        <View style={[styles.side, { borderLeftColor: colors.border }]} testID="column-side">
-          {side}
-        </View>
-      </ContentWidth.Provider>
+      <ScrollView
+        testID="column-main-scroll"
+        style={styles.mainScroll}
+        contentContainerStyle={styles.mainPage}
+        scrollEventThrottle={scroll.onNearEnd ? 200 : undefined}
+        onScroll={nearEnd(scroll.onNearEnd)}
+        refreshControl={
+          scroll.onRefresh ? (
+            <RefreshControl refreshing={scroll.refreshing ?? false} onRefresh={scroll.onRefresh} tintColor={colors.foreground} />
+          ) : undefined
+        }
+      >
+        <ContentWidth.Provider value={CONTENT_MAX}>
+          <View style={styles.main} testID="column-main">
+            {main}
+          </View>
+        </ContentWidth.Provider>
+      </ScrollView>
+      <ScrollView
+        testID="column-side"
+        style={[styles.side, { borderLeftColor: colors.border }]}
+        contentContainerStyle={styles.sidePage}
+      >
+        <ContentWidth.Provider value={ASIDE}>{side}</ContentWidth.Provider>
+      </ScrollView>
     </View>
   );
 }
@@ -139,17 +177,14 @@ const styles = StyleSheet.create({
   leading: { alignSelf: 'flex-start' },
   // Two columns fill the page, the side panel reaching its right edge and its foot.
   filled: { paddingRight: 0, paddingBottom: 0 },
-  // The main column takes what it can; any room past MAIN_MAX falls before the side panel.
-  columns: { flexGrow: 1, flexDirection: 'row', alignItems: 'stretch', justifyContent: 'space-between', gap: SECTION_GAP },
-  main: { flex: 1, minWidth: 0, maxWidth: MAIN_MAX, gap: SECTION_GAP, paddingBottom: SECTION_GAP },
-  // Up to the title bar's hairline, so the panel runs the page's whole height.
-  side: {
-    width: ASIDE + 2 * GUTTER,
-    marginTop: -GUTTER,
-    paddingTop: GUTTER,
-    paddingHorizontal: GUTTER,
-    paddingBottom: SECTION_GAP,
-    gap: SECTION_GAP,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-  },
+  // Over the whole page, from the title bar's hairline to the foot: the page's padding is the columns' own.
+  columns: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, flexDirection: 'row', alignItems: 'stretch' },
+  // The main column's scroll reaches the panel, so its bar sits by the hairline and the room past MAIN_MAX
+  // scrolls it too; the words keep to MAIN_MAX.
+  mainScroll: { flex: 1, minWidth: 0 },
+  mainPage: { paddingLeft: GUTTER, paddingRight: SECTION_GAP, paddingTop: GUTTER, paddingBottom: SECTION_GAP },
+  main: { width: '100%', maxWidth: MAIN_MAX, gap: SECTION_GAP },
+  // Docked to the right edge, the page's whole height under the title bar.
+  side: { flexGrow: 0, flexShrink: 0, width: ASIDE + 2 * GUTTER, borderLeftWidth: StyleSheet.hairlineWidth },
+  sidePage: { paddingTop: GUTTER, paddingHorizontal: GUTTER, paddingBottom: SECTION_GAP, gap: SECTION_GAP },
 });

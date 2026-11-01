@@ -1,13 +1,12 @@
-import { SECTION_LABEL, WALL_COPY, WALL_FEED_COPY, wallDays, wallFeedRow, type WallFeedRow } from '@app/core';
+import { dayLabel, LIST_COPY, SECTION_LABEL, WALL_COPY, WALL_FEED_COPY, wallDays, wallFeedRow, type WallFeedRow } from '@app/core';
 import { MegaphoneIcon } from 'lucide-react-native';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Alert } from '@/components/alert';
-import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
 import { Fold } from '@/components/fold';
 import { useJohnSheet } from '@/components/john-sheet';
+import { ListFoot, nearEnd, type ListMore } from '@/components/list-foot';
 import { PageTitle } from '@/components/page-title';
 import { Reading, ReadFailed } from '@/components/read-state';
 import { Screen } from '@/components/screen';
@@ -20,14 +19,14 @@ import { useHouse } from '@/hooks/use-house';
 import { useMembership } from '@/hooks/use-membership';
 import { usePull } from '@/hooks/use-refresh';
 import { useReact, useWallFeed, wallPages } from '@/hooks/use-wall';
-import { INSET, SPACE } from '@/theme';
 
 /**
  * The whole Wall, pushed from House: what the house did, a day at a time,
  * latest first, with several ticks by one person in a row folded into one,
  * photo receipts under their ticks, and older days on request. A row about
  * this week's John opens it in the John sheet; any other opens the event in
- * full. Holding a row down shows it with all four reactions.
+ * full. Holding a row down shows it with all four reactions. Older days
+ * load as you scroll, under the foot every long list has.
  */
 export default function WallScreen() {
   const { session, house } = useMembership();
@@ -48,6 +47,13 @@ function WallFor({ houseId, userId }: { houseId: string; userId: string }) {
   const rows = scene ? events.map((e) => wallFeedRow(e, scene)) : [];
   const shown = open ? rows.find((r) => r.id === open) : undefined;
   if (open && feed.data && scene && !shown) setOpen(null);
+  const more: ListMore = {
+    has: feed.hasNextPage,
+    busy: feed.isFetchingNextPage,
+    failed: feed.isFetchNextPageError,
+    load: () => void feed.fetchNextPage(),
+  };
+  const oldest = events[events.length - 1];
 
   function show(eventId: string) {
     // Another event's refusal stays with that event's row, not in this sheet.
@@ -109,20 +115,7 @@ function WallFor({ houseId, userId }: { houseId: string; userId: string }) {
             )}
           </Section>
         ))}
-        <View style={styles.foot}>
-          {feed.isFetchNextPageError ? <Alert message={WALL_FEED_COPY.unreadable} /> : null}
-          {feed.hasNextPage ? (
-            <Button
-              variant="outline"
-              label={WALL_FEED_COPY.loadOlder}
-              disabled={feed.isFetchingNextPage}
-              onPress={() => void feed.fetchNextPage()}
-              testID="load-older"
-            />
-          ) : (
-            <Meta>{WALL_FEED_COPY.everything}</Meta>
-          )}
-        </View>
+        <ListFoot more={more} shown={oldest && scene ? LIST_COPY.backTo(dayLabel(oldest.createdAt, scene.zone)) : null} testID="wall-foot" />
       </>
     );
   }
@@ -132,6 +125,7 @@ function WallFor({ houseId, userId }: { houseId: string; userId: string }) {
       bar={<TitleBar title={WALL_COPY.title} back="/house" backLabel={SECTION_LABEL.house} />}
       refreshing={refreshing}
       onRefresh={pull}
+      onNearEnd={nearEnd(more)}
       testID="wall-screen"
     >
       <PageTitle page={WALL_COPY.title} />
@@ -145,7 +139,3 @@ function WallFor({ houseId, userId }: { houseId: string; userId: string }) {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  foot: { paddingHorizontal: INSET, gap: SPACE.md, alignItems: 'flex-start' },
-});

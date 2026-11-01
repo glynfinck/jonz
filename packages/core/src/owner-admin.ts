@@ -77,8 +77,6 @@ export const ADMIN_COPY = {
   auditMeta: (count: number) => (count === 1 ? "1 entry" : `${count} entries`),
   noAudit: "Nothing yet",
   noAuditBody: "Everything you do here is written down, and can’t be changed or removed.",
-  loadOlder: "Load older",
-  loadingOlder: "Loading older entries",
   whatChanged: "What changed",
   appendOnly: "Entries can’t be changed or removed, not even by you.",
   you: "You",
