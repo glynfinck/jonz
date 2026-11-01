@@ -130,7 +130,9 @@ export function JohnList({
         <>
           {filled ? (
             <View style={styles.toolbar} testID="john-list-bar">
-              <Meta style={styles.toolbarWords}>{JOHN_LIST_COPY.perWeek(weeklyEffort(johns))}</Meta>
+              <Meta style={styles.toolbarWords}>
+                {`${JOHN_LIST_COPY.count(johns.length)} ${JOHN_LIST_COPY.perWeek(weeklyEffort(johns))}`}
+              </Meta>
               {editable ? <Button icon={PlusIcon} label={JOHN_LIST_COPY.add} onPress={add} testID="add-john" /> : null}
             </View>
           ) : null}

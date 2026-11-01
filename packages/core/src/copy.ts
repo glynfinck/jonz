@@ -398,6 +398,8 @@ export const JOHN_LIST_COPY = {
   needsPhoto: "needs a photo",
   perWeek: (points: number) =>
     `About ${Math.round(points)} points a week across the house. Changes apply from the next deal.`,
+  /** On a laptop, before the week's points over the list: "11 Johns." */
+  count: (n: number) => `${n} ${n === 1 ? "John" : "Johns"}.`,
   add: "Add a John",
   edit: (name: string) => `Edit ${name}`,
   hint: "Points are effort: 1 for taking the bins out, 5 for a deep clean, up to 20 for a whole day’s job.",
