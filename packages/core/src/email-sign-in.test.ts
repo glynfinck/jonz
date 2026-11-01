@@ -8,6 +8,7 @@ import {
   EMAIL_SIGN_IN_COPY,
   emailAuthProblem,
   emailLooksRight,
+  nameProblem,
   passwordProblem,
 } from "./email-sign-in";
 
@@ -51,5 +52,13 @@ describe("Supabase's emails", () => {
       expect(t.html).toContain("https://jonz.app/email/sign.png");
       expect(t.subject).not.toMatch(/!/);
     }
+  });
+});
+
+describe("nameProblem", () => {
+  it("asks for a name, and keeps it to what renaming allows", () => {
+    expect(nameProblem("  ")).toBe(EMAIL_SIGN_IN_COPY.noName);
+    expect(nameProblem("Sam")).toBeNull();
+    expect(nameProblem("x".repeat(61))).toMatch(/1 to 60/);
   });
 });

@@ -4,6 +4,8 @@
 // with a 6-digit code by email (auth-email.ts), so the same steps work in the
 // app and on the web.
 
+import { DisplayName } from "./schemas";
+
 /** Where the email part of the sign-in sign is. */
 export type EmailStep = "sign-in" | "sign-up" | "confirm" | "forgot" | "reset";
 
@@ -15,6 +17,9 @@ export const CODE_LENGTH = 6;
 
 export const EMAIL_SIGN_IN_COPY = {
   or: "or use your email",
+  name: "Your name",
+  nameHint: "What your housemates see. You can change it later.",
+  noName: "Add your name, so your housemates know it’s you.",
   email: "Email",
   password: "Password",
   newPassword: "New password",
@@ -52,6 +57,13 @@ export const EMAIL_SIGN_IN_COPY = {
   failed: "That didn’t work. Try again.",
   notOpen: "Email sign-in isn’t open yet. Use Google or Microsoft for now.",
 } as const;
+
+/** A sign-up's name: what housemates see, 1 to 60 characters, as renaming yourself allows. */
+export function nameProblem(name: string): string | null {
+  if (!name.trim()) return EMAIL_SIGN_IN_COPY.noName;
+  const parsed = DisplayName.safeParse(name);
+  return parsed.success ? null : parsed.error.issues[0].message;
+}
 
 /** A plain check, not RFC 5322: something@something.tld, with no spaces. */
 export function emailLooksRight(email: string): boolean {
