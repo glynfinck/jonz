@@ -17,6 +17,16 @@
       "count": 1
     }
   },
+  "src/components/admin/list-table.tsx": {
+    "jonz/spacing-from-scale": {
+      "count": 1
+    }
+  },
+  "src/components/admin/smart-search.tsx": {
+    "jonz/spacing-from-scale": {
+      "count": 1
+    }
+  },
   "src/components/alert.tsx": {
     "jonz/spacing-from-scale": {
       "count": 1
