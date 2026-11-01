@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   shots: { gap: SPACE.sm },
   shotRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   add: { width: SHOT_W, height: 96, borderRadius: RADIUS, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  remove: { position: 'absolute', top: SPACE.xs, right: SPACE.xs, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  remove: { position: 'absolute', top: SPACE.xs, right: SPACE.xs, width: 18, height: 18, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   shotNote: { flex: 1, marginLeft: SPACE.xs },
   end: { gap: SPACE.sm, marginTop: SPACE.xs },
 });
