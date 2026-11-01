@@ -16,6 +16,7 @@ import { StyleSheet, View } from 'react-native';
 import { undoCover, undoDone } from '@/api/johns';
 import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
+import { ButtonRow } from '@/components/button-row';
 import { DisputeForm } from '@/components/dispute';
 import { Body } from '@/components/text';
 import { useMove } from '@/hooks/use-move';
@@ -43,21 +44,17 @@ export function YoursChecking({ item, context }: { item: BoardItem; context: Joh
       {asking && warning ? (
         <View style={styles.asking} testID="undo-warning">
           <Body>{warning}</Body>
-          <View style={styles.pair}>
-            <View style={styles.half}>
-              <Button
-                variant="hazard"
-                icon={Undo2Icon}
-                label={JOHN_SHEET_COPY.undoIt}
-                disabled={move.pending}
-                onPress={undo}
-                testID="sheet-undo-it"
-              />
-            </View>
-            <View style={styles.half}>
-              <Button variant="ghost" label={FOCUS_SHELL_COPY.cancel} onPress={() => setAsking(false)} />
-            </View>
-          </View>
+          <ButtonRow>
+            <Button
+              variant="hazard"
+              icon={Undo2Icon}
+              label={JOHN_SHEET_COPY.undoIt}
+              disabled={move.pending}
+              onPress={undo}
+              testID="sheet-undo-it"
+            />
+            <Button variant="ghost" label={FOCUS_SHELL_COPY.cancel} onPress={() => setAsking(false)} />
+          </ButtonRow>
         </View>
       ) : (
         <Button
@@ -96,6 +93,4 @@ export function TheirsChecking({ item, context }: { item: BoardItem; context: Jo
 
 const styles = StyleSheet.create({
   asking: { gap: SPACE.sm },
-  pair: { flexDirection: 'row', gap: SPACE.sm },
-  half: { flex: 1 },
 });

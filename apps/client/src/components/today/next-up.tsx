@@ -190,6 +190,7 @@ function NextJohn({
         </View>
       ) : null}
 
+      {/* eslint-disable-next-line jonz/no-hand-made-button-row -- Today's one exception (docs/style/controls.md): Mark done fills the line, Photo keeps its own width. */}
       <View style={styles.buttons}>
         <View style={styles.grow}>
           {item.needsPhoto ? (

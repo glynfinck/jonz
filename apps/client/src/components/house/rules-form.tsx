@@ -36,6 +36,7 @@ import { Section } from '@/components/section';
 import { PickRow } from '@/components/setup/pick-row';
 import { Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
+import { ButtonRow } from '@/components/button-row';
 import { useBudgetChoices } from '@/hooks/use-budget';
 import { useMove } from '@/hooks/use-move';
 import { deviceTimeZone } from '@/locale';
@@ -278,17 +279,15 @@ export function RulesFoot({ form, onCancel }: { form: RulesFormState; onCancel: 
     <View style={[styles.foot, { backgroundColor: colors.background, borderTopColor: colors.border }]} testID="rules-foot">
       <View style={[styles.footInner, { maxWidth: width }, leading && styles.footLeading]}>
         {form.problems.form ? <Alert message={form.problems.form} /> : null}
-        <View style={styles.buttons}>
-          <View style={styles.save}>
-            <Button
-              label={form.pending ? RULES_COPY.saving : RULES_COPY.save}
-              disabled={form.pending || !form.changed}
-              onPress={() => void form.save()}
-              testID="save-rules"
-            />
-          </View>
+        <ButtonRow>
+          <Button
+            label={form.pending ? RULES_COPY.saving : RULES_COPY.save}
+            disabled={form.pending || !form.changed}
+            onPress={() => void form.save()}
+            testID="save-rules"
+          />
           <Button variant="outline" label={SETUP_COPY.cancel} disabled={form.pending} onPress={onCancel} testID="cancel-rules" />
-        </View>
+        </ButtonRow>
       </View>
     </View>
   );
@@ -307,6 +306,4 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.md,
     gap: SPACE.sm,
   },
-  buttons: { flexDirection: 'row', gap: SPACE.sm },
-  save: { flex: 1 },
 });
