@@ -1424,6 +1424,94 @@ export type Database = {
           },
         ]
       }
+      report_messages: {
+        Row: {
+          at: string
+          author: string | null
+          author_name: string | null
+          body: string
+          from_owner: boolean
+          id: number
+          report_id: string
+        }
+        Insert: {
+          at?: string
+          author?: string | null
+          author_name?: string | null
+          body: string
+          from_owner: boolean
+          id?: never
+          report_id: string
+        }
+        Update: {
+          at?: string
+          author?: string | null
+          author_name?: string | null
+          body?: string
+          from_owner?: boolean
+          id?: never
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_messages_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          details: Json | null
+          house_id: string | null
+          id: string
+          kind: string
+          seen_at: string
+          shots: string[]
+          state: string
+          updated_at: string
+          user_id: string | null
+          words: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          house_id?: string | null
+          id?: string
+          kind: string
+          seen_at?: string
+          shots?: string[]
+          state?: string
+          updated_at?: string
+          user_id?: string | null
+          words: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          house_id?: string | null
+          id?: string
+          kind?: string
+          seen_at?: string
+          shots?: string[]
+          state?: string
+          updated_at?: string
+          user_id?: string | null
+          words?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swap_offers: {
         Row: {
           answer: string | null
@@ -1824,6 +1912,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      my_reports: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          kind: string
+          replies: number
+          state: string
+          unread: boolean
+          updated_at: string
+          words: string
+        }[]
+      }
       new_join_code: { Args: never; Returns: string }
       offer_swap: {
         Args: { p_mine: string; p_theirs: string }
@@ -1880,9 +1981,52 @@ export type Database = {
           user_id: string
         }[]
       }
+      owner_open_report: { Args: { p_report: string }; Returns: Json }
+      owner_reply_report: {
+        Args: { p_body: string; p_report: string }
+        Returns: Json
+      }
+      owner_reports_count: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_kind?: string
+          p_q?: string
+          p_state?: string
+        }
+        Returns: number
+      }
+      owner_reports_page: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_cursor_at?: string
+          p_cursor_id?: string
+          p_kind?: string
+          p_limit?: number
+          p_q?: string
+          p_state?: string
+        }
+        Returns: {
+          created_at: string
+          email: string
+          house_name: string
+          id: string
+          kind: string
+          name: string
+          state: string
+          updated_at: string
+          user_id: string
+          words: string
+        }[]
+      }
       owner_request_deletion: {
         Args: { p_email: string; p_reason?: string }
         Returns: string
+      }
+      owner_set_report_state: {
+        Args: { p_report: string; p_state: string }
+        Returns: undefined
       }
       owner_status: { Args: never; Returns: Json }
       owner_stop_deletion: {
@@ -1975,6 +2119,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      see_report: { Args: { p_report: string }; Returns: undefined }
+      send_report: {
+        Args: {
+          p_details?: Json
+          p_kind: string
+          p_shots?: string[]
+          p_words: string
+        }
+        Returns: string
+      }
       set_away: {
         Args: { p_ends: string; p_note?: string; p_starts: string }
         Returns: number
@@ -2020,6 +2174,10 @@ export type Database = {
       use_swap: {
         Args: { p_mine: string; p_theirs: string }
         Returns: undefined
+      }
+      write_back: {
+        Args: { p_body: string; p_report: string }
+        Returns: string
       }
     }
     Enums: {

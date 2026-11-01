@@ -8,6 +8,7 @@ import { RefreshCwIcon } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { notePage } from '@/api/report-details';
 import { BeingDeleted } from '@/components/account/being-deleted';
 import { Button } from '@/components/button';
 import { NoticeBand } from '@/components/notice-banner';
@@ -51,6 +52,11 @@ function Routes() {
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
+
+  // The pages a report says they were on, if they send one.
+  useEffect(() => {
+    notePage(pathname);
+  }, [pathname]);
 
   if (!ready) return null;
   if (failed) return <Unreachable onRetry={refresh} />;
