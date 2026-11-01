@@ -1,5 +1,5 @@
 import { BIN_NIGHT } from '@app/core';
-import { renderRouter, screen } from 'expo-router/testing-library';
+import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
 import { StyleSheet, Text, useWindowDimensions } from 'react-native';
 
 import { ASIDE, CONTENT_MAX, GUTTER, MAIN_MAX } from '@/theme';
@@ -56,12 +56,49 @@ it('fills the page with two columns, the side a panel docked to the right edge',
   await renderRouter(routes, { initialUrl: '/today' });
   expect(page().maxWidth).toBeUndefined();
   expect(page()).toMatchObject({ paddingRight: 0, paddingBottom: 0 });
-  expect(screen.getByTestId('column-main')).toHaveStyle({ flex: 1, maxWidth: MAIN_MAX });
+  expect(screen.getByTestId('column-main')).toHaveStyle({ maxWidth: MAIN_MAX });
   expect(screen.getByTestId('column-side')).toHaveStyle({
     width: ASIDE + 2 * GUTTER,
-    marginTop: -GUTTER,
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: BIN_NIGHT.light.border,
   });
   expect(bar().maxWidth).toBeUndefined();
+});
+
+it('scrolls each column on its own, over a page that holds still', async () => {
+  (useWindowDimensions as jest.Mock).mockReturnValue(LAPTOP);
+  await renderRouter(routes, { initialUrl: '/today' });
+  // The columns lie over the whole page, so the page's own scroll has nothing to scroll.
+  expect(screen.getByTestId('columns')).toHaveStyle({ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 });
+  // The list and the panel are each a scroll of their own, the list reaching the panel.
+  const main = screen.getByTestId('column-main-scroll');
+  const side = screen.getByTestId('column-side');
+  expect(main.type).toBe('RCTScrollView');
+  expect(side.type).toBe('RCTScrollView');
+  expect(main).toHaveStyle({ flex: 1 });
+  expect(within(main).getByText('Next up')).toBeVisible();
+  expect(within(side).getByText('This week')).toBeVisible();
+  expect(within(main).queryByText('This week')).toBeNull();
+});
+
+it('reads more when the main column nears its end, and pulls to refresh there, in two columns', async () => {
+  (useWindowDimensions as jest.Mock).mockReturnValue(LAPTOP);
+  const onNearEnd = jest.fn();
+  const onRefresh = jest.fn();
+  await renderRouter(
+    {
+      wall: () => (
+        <Screen bar={<TitleBar title="Wall" />} spreads onNearEnd={onNearEnd} onRefresh={onRefresh}>
+          <Columns main={<Text>Entries</Text>} side={<Text>Panel</Text>} />
+        </Screen>
+      ),
+    },
+    { initialUrl: '/wall' },
+  );
+  expect(screen.getByTestId('page-scroll').props.refreshControl).toBeUndefined();
+  expect(screen.getByTestId('column-main-scroll').props.refreshControl.props.onRefresh).toBe(onRefresh);
+  await fireEvent.scroll(screen.getByTestId('column-main-scroll'), {
+    nativeEvent: { contentOffset: { y: 300 }, contentSize: { height: 1200 }, layoutMeasurement: { height: 800 } },
+  });
+  expect(onNearEnd).toHaveBeenCalled();
 });

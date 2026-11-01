@@ -31,7 +31,9 @@ import { Field } from '@/components/field';
 import { Group, GroupItem } from '@/components/group';
 import { TimingPicker, TimingSentence, type TimingWord } from '@/components/house/john-timing';
 import { useHouseWorkspace } from '@/components/house/workspace';
+import { Flow } from '@/components/page-columns';
 import { Row, RowIcon } from '@/components/row';
+import { useFilled } from '@/components/screen';
 import { Section } from '@/components/section';
 import { ChoiceRow } from '@/components/setup/choice-row';
 import { PickRow } from '@/components/setup/pick-row';
@@ -60,6 +62,7 @@ export function JohnList({
   groups,
   editable,
   whoAdds,
+  quietAdd = false,
 }: {
   houseId: string;
   rules: HouseRules;
@@ -68,6 +71,8 @@ export function JohnList({
   editable: boolean;
   /** An empty list, to someone who can't add to it: who will ("Sam will add the Johns."). */
   whoAdds?: string;
+  /** Add a John in outline over the list on a laptop, for a page whose one amber button is another (the first deal). */
+  quietAdd?: boolean;
 }) {
   const [editing, setEditing] = useState<Draft | null>(null);
   const [reading, setReading] = useState<JohnDef | null>(null);
@@ -105,6 +110,8 @@ export function JohnList({
   const add = () => edit({ ...NEW_JOHN });
   // Describe your house: the chat's page on a phone, the panel beside the list from WIDE.
   const ask = useAskJonz();
+  // On a laptop the kinds sit in columns, with Add a John above them rather than at the foot.
+  const filled = useFilled() !== null;
 
   return (
     <>
@@ -123,30 +130,56 @@ export function JohnList({
           }
         />
       ) : (
-        johnsByKind(johns).map((kind) => (
-          <Section key={kind.category} label={kind.label} testID={`kind-${kind.category}`}>
-            {kind.johns.map((j) => {
-              const schedule = scheduleLine(j, groupName(j.groupId));
-              const line = [schedule, j.crew === 1 ? null : CREW_COPY.choice(j.crew), j.keepDay ? STEADY_COPY.keepsDay : null]
-                .filter(Boolean)
-                .join(', ');
-              return (
-                <Row
-                  key={j.id}
-                  title={j.name}
-                  lid={j.category}
-                  meta={line}
-                  trailing={pointsLabel(j.points)}
-                  onPress={() => (editable ? edit(j) : read(j))}
-                  accessibilityLabel={editable ? `${JOHN_LIST_COPY.edit(j.name)}, ${line}, ${pointsLabel(j.points)}` : undefined}
-                  testID="john-def"
+        <>
+          {filled ? (
+            <View style={styles.toolbar} testID="john-list-bar">
+              <Meta style={styles.toolbarWords}>
+                {`${JOHN_LIST_COPY.count(johns.length)} ${JOHN_LIST_COPY.perWeek(weeklyEffort(johns))}`}
+              </Meta>
+              {editable ? (
+                <Button
+                  variant={quietAdd ? 'outline' : undefined}
+                  icon={PlusIcon}
+                  label={JOHN_LIST_COPY.add}
+                  onPress={add}
+                  testID="add-john"
                 />
-              );
-            })}
-          </Section>
-        ))
+              ) : null}
+            </View>
+          ) : null}
+          <Flow
+            testID="john-kinds"
+            items={johnsByKind(johns).map((kind) => ({
+              key: kind.category,
+              // A John's row is about two lines; the kind's name about one.
+              weight: kind.johns.length + 1,
+              node: (
+                <Section label={kind.label} testID={`kind-${kind.category}`}>
+                  {kind.johns.map((j) => {
+                    const schedule = scheduleLine(j, groupName(j.groupId));
+                    const line = [schedule, j.crew === 1 ? null : CREW_COPY.choice(j.crew), j.keepDay ? STEADY_COPY.keepsDay : null]
+                      .filter(Boolean)
+                      .join(', ');
+                    return (
+                      <Row
+                        key={j.id}
+                        title={j.name}
+                        lid={j.category}
+                        meta={line}
+                        trailing={pointsLabel(j.points)}
+                        onPress={() => (editable ? edit(j) : read(j))}
+                        accessibilityLabel={editable ? `${JOHN_LIST_COPY.edit(j.name)}, ${line}, ${pointsLabel(j.points)}` : undefined}
+                        testID="john-def"
+                      />
+                    );
+                  })}
+                </Section>
+              ),
+            }))}
+          />
+        </>
       )}
-      {johns.length > 0 ? (
+      {johns.length > 0 && !filled ? (
         <View style={styles.foot}>
           {editable ? (
             <Group>
@@ -323,6 +356,9 @@ function JohnForm({
 const styles = StyleSheet.create({
   emptyActions: { gap: SPACE.sm, alignSelf: 'stretch' },
   foot: { gap: LABEL_GAP },
+  // Above the kinds on a laptop: how much the list adds up to, and Add a John at the right.
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: SPACE.lg, paddingLeft: INSET },
+  toolbarWords: { flex: 1 },
   // A line under a group, on the leading edge.
   note: { paddingHorizontal: INSET },
   noted: { gap: LABEL_GAP },

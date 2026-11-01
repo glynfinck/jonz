@@ -18,6 +18,7 @@ import { StyleSheet, View } from 'react-native';
 import { ApiRequestError } from '@/api/http';
 import { leaveFor, passBillingUrl, passCheckoutOpen, passCheckoutUrl } from '@/api/pass';
 import { HousePage } from '@/components/house/house-page';
+import { Pair } from '@/components/page-columns';
 import { Row, RowIcon } from '@/components/row';
 import { Section } from '@/components/section';
 import { Body, Meta } from '@/components/text';
@@ -84,6 +85,7 @@ function PassFor({ houseId, userId }: { houseId: string; userId: string }) {
     <HousePage
       title={PAGE_TITLE.pass}
       testID="pass-screen"
+      fills
       ready={view !== null}
       failed={query.isError}
       onRetry={() => void query.refetch()}
@@ -148,43 +150,49 @@ function PassReadOut({
         {waiting ? <Meta testID="pass-bought">{PASS_COPY.bought}</Meta> : null}
       </View>
 
-      <Section label={PASS_COPY.includes}>
-        <Row leading={<RowIcon icon={CoinsIcon} />} title={PASS_COPY.stake} meta={PASS_COPY.stakeMeta} />
-        <Row leading={<RowIcon icon={TrophyIcon} />} title={PASS_COPY.table} meta={PASS_COPY.tableMeta} />
-        <Row leading={<RowIcon icon={CameraIcon} />} title={PASS_COPY.photos} meta={PASS_COPY.photosMeta} />
-        <Row
-          leading={<RowIcon icon={HistoryIcon} />}
-          title={PASS_COPY.history}
-          meta={PASS_COPY.historyMeta(PASS_FREE_HISTORY_WEEKS)}
-        />
-      </Section>
-
-      {founding ? null : (
-        <Section label={PASS_COPY.plans} testID="pass-plans">
-          {canManage ? (
+      <Pair
+        testID="pass-pair"
+        start={
+          <Section label={PASS_COPY.includes}>
+            <Row leading={<RowIcon icon={CoinsIcon} />} title={PASS_COPY.stake} meta={PASS_COPY.stakeMeta} />
+            <Row leading={<RowIcon icon={TrophyIcon} />} title={PASS_COPY.table} meta={PASS_COPY.tableMeta} />
+            <Row leading={<RowIcon icon={CameraIcon} />} title={PASS_COPY.photos} meta={PASS_COPY.photosMeta} />
             <Row
-              leading={<RowIcon icon={CreditCardIcon} />}
-              title={PASS_COPY.manage}
-              meta={PASS_COPY.manageMeta}
-              onPress={onManage}
-              disabled={leaving}
-              chevron
-              testID="pass-manage"
+              leading={<RowIcon icon={HistoryIcon} />}
+              title={PASS_COPY.history}
+              meta={PASS_COPY.historyMeta(PASS_FREE_HISTORY_WEEKS)}
             />
-          ) : null}
-          {offers.map((offer) => (
-            <Row
-              key={offer.plan}
-              title={offer.label}
-              meta={offer.meta}
-              trailing={offer.price}
-              onPress={selling ? () => onBuy(offer.plan) : undefined}
-              disabled={!selling || leaving}
-              testID={`plan-${offer.plan}`}
-            />
-          ))}
-        </Section>
-      )}
+          </Section>
+        }
+        end={
+          founding ? null : (
+            <Section label={PASS_COPY.plans} testID="pass-plans">
+              {canManage ? (
+                <Row
+                  leading={<RowIcon icon={CreditCardIcon} />}
+                  title={PASS_COPY.manage}
+                  meta={PASS_COPY.manageMeta}
+                  onPress={onManage}
+                  disabled={leaving}
+                  chevron
+                  testID="pass-manage"
+                />
+              ) : null}
+              {offers.map((offer) => (
+                <Row
+                  key={offer.plan}
+                  title={offer.label}
+                  meta={offer.meta}
+                  trailing={offer.price}
+                  onPress={selling ? () => onBuy(offer.plan) : undefined}
+                  disabled={!selling || leaving}
+                  testID={`plan-${offer.plan}`}
+                />
+              ))}
+            </Section>
+          )
+        }
+      />
 
       <View style={styles.words}>
         {firstCharge ? <Meta testID="pass-first-charge">{firstCharge}</Meta> : null}

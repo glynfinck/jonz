@@ -73,6 +73,17 @@ const MESSAGES: Record<string, string> = {
   plan_time: "Pick a time from now until the end of this week.",
   already_asked: "You’ve already asked about that John today.",
   swap_gone: "That ask has run out, so the Johns stay as they were.",
+  owner_only: "Only the owner can do that, signed in with their code.",
+  notice_ends_first: "A notice has to end after it starts.",
+  audit_append_only: "The audit log can’t be changed.",
+  no_deletion: "That account isn’t waiting to be deleted any more.",
+  no_account: "There’s no Jonz account with that email.",
+  already_deleting: "That account is already waiting to be deleted.",
+  report_kind: "Pick a problem, an idea or a question.",
+  report_words: "Say what happened, in up to 2,000 letters.",
+  report_shot: "That screenshot didn’t upload. Add it again.",
+  report_limit: "That’s a lot for one day. Try again tomorrow, or email support@jonz.app.",
+  report_state: "A report can be marked fixed, or opened again.",
 };
 
 export function humanError(error: { message?: string; code?: string } | null | undefined): string {

@@ -61,8 +61,6 @@ export const HISTORY_COPY = {
   madeAdmin: (name: string) => `${name} is an admin now.`,
   madeHousemate: (name: string) => `${name} is a housemate now.`,
   removed: (name: string) => `${name} has been removed.`,
-  more: "Show older",
-  moreFailed: "Older moves couldn’t be read. Try again.",
   reading: "Reading the house’s history",
   unreadable: "History couldn’t be read.",
   /** A housemate who has since left. */

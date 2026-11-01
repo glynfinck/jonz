@@ -1,4 +1,4 @@
-import { afterSignIn, ERROR_COPY, SIGN_IN, signedOutTo } from '@app/core';
+import { afterSignIn, DELETE_PATH, ERROR_COPY, SIGN_IN, signedOutTo } from '@app/core';
 import { useFonts } from 'expo-font';
 import { Stack, useGlobalSearchParams, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,7 +8,10 @@ import { RefreshCwIcon } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { notePage } from '@/api/report-details';
+import { BeingDeleted } from '@/components/account/being-deleted';
 import { Button } from '@/components/button';
+import { NoticeBand } from '@/components/notice-banner';
 import { StagingRibbon } from '@/components/staging-ribbon';
 import { Body, Heading } from '@/components/text';
 import { LookProvider } from '@/hooks/look';
@@ -35,7 +38,7 @@ export default function RootLayout() {
 
 function Routes() {
   const [fontsLoaded, fontError] = useFonts(FONT_FILES);
-  const { session, signedOut, house, loading, failed, refresh } = useMembership();
+  const { session, signedOut, house, deletion, loading, failed, refresh } = useMembership();
   const { scheme, colors } = useTheme();
   const pathname = usePathname();
   const { next } = useGlobalSearchParams<{ next?: string | string[] }>();
@@ -50,6 +53,11 @@ function Routes() {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
 
+  // The pages a report says they were on, if they send one.
+  useEffect(() => {
+    notePage(pathname);
+  }, [pathname]);
+
   if (!ready) return null;
   if (failed) return <Unreachable onRetry={refresh} />;
 
@@ -62,37 +70,63 @@ function Routes() {
   // every platform, signing in with no house goes where sign-in's ?next was
   // carrying you (naming the house, or a join link), if it's one of those.
   const carried = pathname === SIGN_IN && typeof next === 'string' ? afterSignIn(next) : undefined;
-  const home = !signedIn ? (signedOut ? SIGN_IN : signedOutTo(pathname)) : housed ? '/today' : (carried ?? '/welcome');
+  const home = !signedIn
+    ? signedOut
+      ? SIGN_IN
+      : signedOutTo(pathname)
+    : carried === DELETE_PATH
+      ? DELETE_PATH
+      : housed
+        ? '/today'
+        : (carried ?? '/welcome');
+  // An account waiting to be deleted sees only that, and Keep my account.
+  if (signedIn && deletion) {
+    return (
+      <>
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+        <BeingDeleted deletion={deletion} />
+      </>
+    );
+  }
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <StagingRibbon />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        {/* Signed out: the front door and sign-in. */}
-        <Stack.Protected guard={!signedIn} redirectTo={home}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="signin" />
-        </Stack.Protected>
-        {/* Signed in, in no house: start one, or join by code. */}
-        <Stack.Protected guard={signedIn && !housed} redirectTo={home}>
-          <Stack.Screen name="welcome" />
-          <Stack.Screen name="house/new" />
-        </Stack.Protected>
-        {/* In a house: its screens, as tabs. */}
-        <Stack.Protected guard={signedIn && housed} redirectTo={home}>
-          <Stack.Screen name="(house)" />
-        </Stack.Protected>
-        {/* The old /wall, /stake and /table links are the router's redirects
-            (app.json), on to their places under House, whose guard then
-            applies. A link followed inside the app goes straight there, into
-            the house already open, never stacking a second one. */}
-        {/* A join link opens for anyone, and signs you in in place. */}
-        <Stack.Screen name="join/[joinCode]" />
-        {/* So do the Privacy Policy, the Terms, and a link to nowhere. */}
-        <Stack.Screen name="privacy" />
-        <Stack.Screen name="terms" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <NoticeBand>
+        <StagingRibbon />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+          {/* Signed out: the front door and sign-in. */}
+          <Stack.Protected guard={!signedIn} redirectTo={home}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="signin" />
+          </Stack.Protected>
+          {/* Signed in, in no house: start one, or join by code. */}
+          <Stack.Protected guard={signedIn && !housed} redirectTo={home}>
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="house/new" />
+          </Stack.Protected>
+          {/* In a house: its screens, as tabs. */}
+          <Stack.Protected guard={signedIn && housed} redirectTo={home}>
+            <Stack.Screen name="(house)" />
+          </Stack.Protected>
+          {/* The owner's pages, for whoever is signed in: they check the rest themselves. */}
+          <Stack.Protected guard={signedIn} redirectTo={home}>
+            <Stack.Screen name="admin" />
+          </Stack.Protected>
+          {/* The old /wall, /stake and /table links are the router's redirects
+              (app.json), on to their places under House, whose guard then
+              applies. A link followed inside the app goes straight there, into
+              the house already open, never stacking a second one. */}
+          {/* A join link opens for anyone, and signs you in in place. */}
+          <Stack.Screen name="join/[joinCode]" />
+          {/* So do the Privacy Policy, the Terms, deleting an account, and a link to nowhere. */}
+          <Stack.Screen name="privacy" />
+          <Stack.Screen name="delete" />
+          <Stack.Screen name="terms" />
+          {/* The style page, where it's shown at all (components/style-page/enabled.ts). */}
+          <Stack.Screen name="style" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </NoticeBand>
     </>
   );
 }

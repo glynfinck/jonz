@@ -112,8 +112,17 @@ Overpass Black. Every brand image is drawn from the mark by `npm run brand`;
 file goes. Late and missed
 wear hazard tape. No emoji anywhere in the UI: lucide icons only, reactions
 included. Light and dark both ship; the theme follows the system by default.
-Tap targets are at least 44px. Where the tokens and components live is in
+Tap targets are at least 48px. Where the tokens and components live is in
 each app's AGENTS.md.
+
+**The style guide is `docs/style/`**: every rule for how Jonz looks and
+behaves on a phone and a laptop (the feel, words, layout, lists, controls,
+states), each with the decision it came from, and `decisions.md`, the log
+of design picks. It wins over older specs and PR descriptions. Before
+changing any screen, component, sheet, email or draft, load the
+`house-style` skill (`.claude/skills/house-style/SKILL.md`). When Glyn picks
+a design option, the PR that builds it updates the rule and adds a line to
+`docs/style/decisions.md`.
 
 ## Rules live in the lowest layer that can hold them
 
@@ -151,7 +160,10 @@ each app's AGENTS.md.
   `POST /api/resets` to the service-role-only `admin_reset`
   (`docs/specs/admin-resets.md`);
   a notification's buttons reach `mark_done` and `cast_vote` through the
-  service-role-only `push_action`) or a few column
+  service-role-only `push_action`; the owner's admin pages write through
+  `save_notice` / `end_notice`, which check `is_owner()` (a row in the
+  migration-only `app_owners` plus an `aal2` session) and append to the
+  append-only `admin_audit`, see `docs/specs/owner-admin.md`) or a few column
   grants (house settings and the John list, its group included, for admins;
   your own name, reactions, push subscriptions). Refusals raise `42501` (not
   yours) or `P0001` with a short code that `errors.ts` turns into a sentence.
@@ -304,7 +316,9 @@ at `<house>/<assignment>/<file>`.
   the iOS app (App Store guideline 4.8: social sign-in on iOS must offer
   Apple too). The web signs in through Google's redirect; the native app
   hands Supabase an ID token from Google's or Apple's own sheet
-  (`apps/client/src/api/auth.ts`).
+  (`apps/client/src/api/auth.ts`). Microsoft works the same way, and an email
+  and password too, where a new account and a reset each take a 6-digit
+  emailed code, never a link (`apps/client/src/api/email-auth.ts`).
 - `supabase/config.toml` is for local development only. Never `supabase
   config push`, which writes local settings over production's.
 

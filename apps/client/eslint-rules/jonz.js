@@ -1,0 +1,186 @@
+// Jonz's house style, checked by the linter. The rules are written down in
+// docs/style/; these catch the ones a machine can see. Code that broke a rule
+// before the rule existed is listed in eslint-suppressions.json, so it warns
+// nobody until someone fixes it (then `npx eslint --prune-suppressions`
+// shrinks the list); anything new fails.
+
+const COLOUR_KEY = /(^color$|Color$|^fill$|^stroke$)/;
+const COLOUR_VALUE = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\(.*\)|white|black|red|green|blue|yellow|orange|grey|gray)$/i;
+const SPACING_KEY = /^(padding|margin)(Top|Bottom|Left|Right|Horizontal|Vertical|Start|End|Block|Inline)?$|^(gap|rowGap|columnGap)$/;
+const TYPE_KEY = /^(fontSize|lineHeight|letterSpacing)$/;
+const RADIUS_KEY = /^border(TopLeft|TopRight|BottomLeft|BottomRight|TopStart|TopEnd|BottomStart|BottomEnd)?Radius$/;
+const BUTTONS = new Set(['Button', 'TextButton', 'IconButton']);
+const PRESSABLES = new Set(['Pressable', 'TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback']);
+
+function keyName(property) {
+  if (property.computed) return null;
+  if (property.key.type === 'Identifier') return property.key.name;
+  if (property.key.type === 'Literal') return String(property.key.value);
+  return null;
+}
+
+/** A plain number written in place, or a negative one. */
+function rawNumber(node) {
+  if (node.type === 'Literal' && typeof node.value === 'number') return node.value;
+  if (node.type === 'UnaryExpression' && node.operator === '-' && node.argument.type === 'Literal' && typeof node.argument.value === 'number') {
+    return -node.argument.value;
+  }
+  return null;
+}
+
+function elementName(node) {
+  const name = node.openingElement.name;
+  return name.type === 'JSXIdentifier' ? name.name : null;
+}
+
+/** The elements among a JSX element's children, looking through `{cond ? <A/> : <B/>}` and `{x && <A/>}`. */
+function childElements(node) {
+  const out = [];
+  for (const child of node.children) {
+    if (child.type === 'JSXElement') out.push(child);
+    else if (child.type === 'JSXExpressionContainer') {
+      const e = child.expression;
+      if (e.type === 'JSXElement') out.push(e);
+      else if (e.type === 'ConditionalExpression' && e.consequent.type === 'JSXElement') out.push(e.consequent);
+      else if (e.type === 'LogicalExpression' && e.right.type === 'JSXElement') out.push(e.right);
+    }
+  }
+  return out;
+}
+
+/** Whether an element is a button, or a View wrapping just one button (the old "half"). */
+function isButtonish(element) {
+  const name = elementName(element);
+  if (BUTTONS.has(name)) return name === 'Button';
+  if (name !== 'View') return false;
+  const inner = childElements(element);
+  return inner.length === 1 && isButtonish(inner[0]);
+}
+
+module.exports = {
+  meta: { name: 'jonz' },
+  rules: {
+    'no-raw-colour': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Colours come from useTheme(), never written by hand (docs/style/feel.md).' },
+        messages: { raw: 'Write no colour by hand: take it from useTheme().colors (docs/style/feel.md).' },
+        schema: [],
+      },
+      create(context) {
+        return {
+          Property(node) {
+            const key = keyName(node);
+            if (!key || !COLOUR_KEY.test(key)) return;
+            if (node.value.type === 'Literal' && typeof node.value.value === 'string' && COLOUR_VALUE.test(node.value.value)) {
+              context.report({ node: node.value, messageId: 'raw' });
+            }
+          },
+          JSXAttribute(node) {
+            if (node.name.type !== 'JSXIdentifier' || !COLOUR_KEY.test(node.name.name)) return;
+            const v = node.value;
+            if (v && v.type === 'Literal' && typeof v.value === 'string' && COLOUR_VALUE.test(v.value)) {
+              context.report({ node: v, messageId: 'raw' });
+            }
+          },
+        };
+      },
+    },
+    'no-raw-type-size': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Text sizes come from the six text roles (docs/style/words.md).' },
+        messages: { raw: 'Use a text role from useTheme().type instead of a {{key}} written by hand (docs/style/words.md).' },
+        schema: [],
+      },
+      create(context) {
+        return {
+          Property(node) {
+            const key = keyName(node);
+            if (!key || !TYPE_KEY.test(key)) return;
+            const n = rawNumber(node.value);
+            if (n !== null && n !== 0) context.report({ node: node.value, messageId: 'raw', data: { key } });
+          },
+        };
+      },
+    },
+    'spacing-from-scale': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Spacing and corners come from the theme (docs/style/lists.md).' },
+        messages: {
+          space: 'Take {{key}} from the theme (SPACE, GUTTER, INSET, LABEL_GAP, SECTION_GAP), not a number written by hand (docs/style/lists.md).',
+          radius: 'Take {{key}} from the theme (RADIUS, GROUP_RADIUS), not a number written by hand.',
+        },
+        schema: [],
+      },
+      create(context) {
+        return {
+          Property(node) {
+            const key = keyName(node);
+            if (!key) return;
+            const n = rawNumber(node.value);
+            if (n === null || n === 0) return;
+            if (SPACING_KEY.test(key)) context.report({ node: node.value, messageId: 'space', data: { key } });
+            else if (RADIUS_KEY.test(key) && n < 999) context.report({ node: node.value, messageId: 'radius', data: { key } });
+          },
+        };
+      },
+    },
+    'no-hand-made-button-row': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Buttons side by side go in a ButtonRow (docs/style/controls.md).' },
+        messages: { row: 'Put buttons that sit together in a ButtonRow: equal widths, stacking when narrow (docs/style/controls.md).' },
+        schema: [],
+      },
+      create(context) {
+        return {
+          JSXElement(node) {
+            const name = elementName(node);
+            if (name === 'ButtonRow' || name === 'Fragment') return;
+            const buttons = childElements(node).filter(isButtonish);
+            if (buttons.length < 2) return;
+            // A column of buttons is fine; a row of them is the thing to catch.
+            if (!looksLikeRow(node, context)) return;
+            context.report({ node: node.openingElement, messageId: 'row' });
+          },
+        };
+      },
+    },
+    'no-pressable-in-screens': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Screens use the shared controls, never their own pressables (docs/style/controls.md).' },
+        messages: { screen: 'Screens use Button, IconButton, TextButton, Row or another shared control, not {{name}} (docs/style/controls.md).' },
+        schema: [],
+      },
+      create(context) {
+        const file = context.filename.replace(/\\/g, '/');
+        if (!/\/src\/app\//.test(file)) return {};
+        return {
+          ImportSpecifier(node) {
+            const parent = node.parent;
+            if (parent.source.value !== 'react-native') return;
+            const name = node.imported.name;
+            if (PRESSABLES.has(name)) context.report({ node, messageId: 'screen', data: { name } });
+          },
+        };
+      },
+    },
+  },
+};
+
+/**
+ * Whether an element lays its children out in a row: its style names one
+ * with flexDirection 'row', written in place or in the file's StyleSheet.
+ */
+function looksLikeRow(node, context) {
+  const attr = node.openingElement.attributes.find((a) => a.type === 'JSXAttribute' && a.name.name === 'style');
+  if (!attr || !attr.value || attr.value.type !== 'JSXExpressionContainer') return false;
+  const source = context.sourceCode.getText(attr.value.expression);
+  if (/flexDirection:\s*'row'/.test(source)) return true;
+  const names = [...source.matchAll(/styles\.(\w+)/g)].map((m) => m[1]);
+  const text = context.sourceCode.getText();
+  return names.some((n) => new RegExp(`\\b${n}:\\s*\\{[^}]*flexDirection:\\s*'row'`).test(text));
+}

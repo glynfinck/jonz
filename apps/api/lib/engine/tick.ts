@@ -73,8 +73,8 @@ export interface PushMessage {
   title: string;
   body: string;
   url: string;
-  /** Which setting it answers to (@app/core notify.ts). */
-  kind: PushKind;
+  /** Which setting it answers to (@app/core notify.ts); `support` has none. */
+  kind: PushKind | "support";
   /** The house's zone, for quiet hours saved without one. */
   zone: string;
   /** A button to answer it from the notification: tick this John, or vote on this dispute. */

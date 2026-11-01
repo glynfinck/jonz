@@ -126,19 +126,27 @@ permanent once a store has seen them.
   (`LookProvider` in the root layout, `useLook()`), saved in storage under
   `theme`, the key the web's next-themes uses.
 - `src/components/`: the pieces every house screen is built from, Focus's
-  kit: `Screen` (a house screen's page), `TitleBar` (with `MoreButton` for
+  kit: `Screen` (a house screen's page; `spreads` for Today, Week and
+  House in `Columns`, `fills` for House's other pages, whose sections sit
+  side by side on a laptop in `Pair` and `Flow` from `page-columns.tsx`),
+  `TitleBar` (with `MoreButton` for
   "•••"), `PageTitle` (the browser tab's title on the web from core's
   `pageTitle`, nothing on a phone), `Section`, `Group`, `Row` (the one row,
   everywhere), `Fold`, `Card` (at most one stand-alone card a screen),
   `TickBox`, `StatusMark` and `Chip` (core's `STATUS_MARK`, drawn),
-  `LidBar`, `Avatar`, `CountBadge`, `Button`, `TextButton`, `TextLink`,
-  `Field`, `Alert`, `Segmented`, `EmptyState`, `Reading` and `ReadFailed`
+  `LidBar`, `Avatar`, `CountBadge`, `Button`, `ButtonRow` (buttons side by
+  side: equal, stacking when narrow), `IconButton` (every icon-only control),
+  `TextButton`, `TextLink`,
+  `Field`, `SignInForm` and `HiddenUsername` (sign-in and password boxes
+  as a real form on the web, for password managers), `Alert`, `Segmented`,
+  `EmptyState`, `Reading` and `ReadFailed`
   (a first read on its way, or "Try again"), toasts, and the brand pieces
   (`Wordmark`, `HazardTape`, `SignInPanel`). `john-row.tsx` is a John as a
   row wherever one is drawn (Today, Week's groups and its table): core's
   `johnRow` decides the circle, the meta line and the one trailing item for
   anyone's John and whoever is looking, and `DoneFold` folds the finished
-  ones with how many were late. Then one folder per place:
+  ones with how many were late. `CodeBoxes` is every 6-digit code (the
+  admin code, the codes we email). Then one folder per place:
   - `today/`: Next up (`NextUp`, or `SetupCard`, an admin's checklist
     before the first deal), Needs you, the rest of your week and the page's
     tappable lines (`PageLine`).
@@ -286,6 +294,9 @@ permanent once a store has seen them.
   `eas update` without being asked.
 
 ### Bin Night in React Native
+
+The rules themselves (what to use where, on a phone and a laptop) are in
+`docs/style/`; this section says where they live in this app's code.
 
 - **One theme file**, `src/theme.ts`. Colours come from `useTheme()`, which
   reads `BIN_NIGHT` from `@app/core`; never write a colour anywhere else.

@@ -15,11 +15,11 @@ export const LEGAL = {
   /** Who runs Jonz: the "we" of both pages. */
   operator: "Glyn Finck",
   /** Where questions, deletion requests and complaints go. */
-  email: "glynfinck@gmail.com",
+  email: "support@jonz.app",
   /** Whose courts and law the Terms name. */
   law: "England and Wales",
   /** When either page last changed in substance. */
-  updated: "30 October 2026",
+  updated: "31 October 2026",
   privacyPath: "/privacy",
   termsPath: "/terms",
   site: "https://jonz.app",
@@ -65,11 +65,12 @@ export const PRIVACY_POLICY: LegalPage = {
     {
       heading: "What we keep",
       body: [
-        "Your account: your name, your email address, a profile photo if your account has one, and an ID from the account you sign in with. We never see your password.",
+        "Your account: your name, your email address, a profile photo if your account has one, an ID from the account you sign in with, and which Terms you agreed to and when. We never see your password.",
         "Your house: its name, currency, time zone and rules; the Johns, who was given which, and when each was ticked; any photo you add to a tick; disputes, votes and reactions; time away and groups; the points table; the Stake ledger of what housemates owe each other; and the history of changes admins make.",
         "Reminders: if you turn them on, the address your browser or phone gives us to send notifications to, and which reminders you want and when.",
         "The House Pass: which plan your house has, who bought it, and the IDs Stripe gives the purchase. We never see or store card details.",
         "Ask Jonz: how many times your house used it each day and how long the answers were, so we can keep it within its daily limit. Not what you wrote.",
+        "Reports: a problem, idea or question you send us in the app, any screenshots you add, our replies, and the details you choose to send with it (described below).",
         "Technical: our hosts keep short-lived logs of requests (your IP address, browser and the page asked for) to keep the service running and secure. Your browser or phone stores your sign-in and your light or dark choice. There are no ads, no analytics, and no tracking cookies.",
       ],
     },
@@ -108,12 +109,20 @@ export const PRIVACY_POLICY: LegalPage = {
       ],
     },
     {
+      heading: "Reports, ideas and questions",
+      body: [
+        "When you report a problem, send an idea or ask a question in Jonz, we keep what you wrote and any screenshots you add. If you leave “Send the details that help” ticked, it also carries the pages you were just on, your app or browser, your house’s name and the last error the app showed, all listed for you to read before you send. Nothing else about your house or your housemates goes with it.",
+        "Only you and the person who runs Jonz can read a report. Screenshots are stored privately and shown through links that expire after an hour. A screenshot can show your housemates’ names, so crop it if you’d rather it didn’t. We reply in the app, with a notification, and by email.",
+      ],
+    },
+    {
       heading: "Who helps us run Jonz",
       body: [
         "These companies process information for us, only to provide their part of the service:",
         "• Supabase: our database, sign-in and photo storage, in London, UK.",
         "• Vercel: hosts the website and the API, mainly in the United States.",
         "• Anthropic, through Vercel: writes Ask Jonz’s answers.",
+        "• Resend: sends Jonz’s emails and receives replies to them, in Ireland, EU. It sees your email address and the email, and keeps them for 30 days.",
         "• Stripe, and Link (Stripe’s checkout): take payment for the House Pass and handle tax, receipts and refunds as the seller of record. They collect your payment details and billing address under Stripe’s own privacy policy.",
         "• Google, Microsoft and Apple: sign you in, and deliver notifications to your browser or phone (as do Mozilla for Firefox and other browser makers). Notifications say what the reminder is about and nothing else.",
         "We may also share information if the law requires it, to protect people’s safety, or with whoever takes over Jonz, who would be bound by this policy.",
@@ -139,10 +148,13 @@ export const PRIVACY_POLICY: LegalPage = {
     {
       heading: "Deleting your account",
       body: [
-        `To delete your account, ${CONTACT} from the address you sign in with (or say which account it is) and ask. We’ll confirm, then delete your account, name, email, photos and notification addresses within 30 days. A house you were in keeps its shared records, such as past Johns and the Stake ledger, without your name or photo.`,
+        `Delete your account in the app (House, then Delete my account) or at jonz.app/delete. It goes 30 days later; until then, signing in again and pressing Keep my account stops it, and your house sees you as away. Then your account, name, email, photo, notification addresses and sign-ins are deleted. A house you were in keeps its shared records, such as past Johns and the Stake ledger, shown as “Someone who left”. Reports you sent lose your name, email address and screenshots; what you wrote stays, so we can keep track of what needs fixing.`,
+        "If you pay for a House Pass, it stops renewing when you ask, and covers the house to the end of what was paid. It renews again if you keep your account.",
+        `If you can’t sign in any more, ${CONTACT} from the address on the account and we’ll start it for you.`,
         "You can also stop Jonz signing you in with your Google, Microsoft or Apple account from that account’s settings.",
       ],
       links: [
+        { label: "Delete your account", href: `${LEGAL.site}/delete` },
         { label: "Google: apps with access", href: "https://myaccount.google.com/connections" },
         { label: "Microsoft: your apps", href: "https://myapps.microsoft.com" },
         { label: "Apple: Sign in with Apple", href: "https://account.apple.com/account/manage" },

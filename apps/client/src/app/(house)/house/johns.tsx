@@ -37,6 +37,7 @@ function JohnListFor({ houseId, userId }: { houseId: string; userId: string }) {
     <HousePage
       title={PAGE_TITLE.johnList}
       testID="johns-screen"
+      fills
       ready={view !== null && list.data !== undefined}
       failed={query.isError || list.isError}
       onRetry={retry}
@@ -59,6 +60,8 @@ function JohnListPage({ houseId, userId, view, list }: { houseId: string; userId
         groups={list.groups}
         editable={isAdmin}
         whoAdds={johnsComing(view.snapshot.members, userId)}
+        // Until the first deal, the deal at the foot is the page's one amber button.
+        quietAdd={!view.snapshot.house.everDealt}
       />
       {isAdmin && list.johns.length > 0 ? (
         <DealFoot houseId={houseId} started={view.snapshot.house.everDealt} canRedeal={canRedeal(view.board)} />

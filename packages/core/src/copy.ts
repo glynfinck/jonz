@@ -36,6 +36,7 @@ export const PAGE_TITLE = {
   prefs: "Preferences",
   moving: "Moving out",
   movingOn: "Moving on",
+  deleteAccount: "Delete your account",
 } as const;
 
 /** A page that isn't there, and a page that broke. */
@@ -100,7 +101,7 @@ export const SIGN_IN_COPY = {
   microsoftBusy: "Opening Microsoft…",
   eitherAccount: "Your house’s Johns are kept with the account you sign in with.",
   sameAccount: "Already in a house? Use the account you joined with.",
-  terms: "By continuing you agree to the Terms and the Privacy Policy, and to the house rules your housemates set.",
+  terms: "By continuing you agree to the Terms and the Privacy Policy, and to the house rules your housemates set, and say you’re 13 or older.",
   privacy: "Privacy",
   termsLink: "Terms",
   failed: (provider: SignInProvider) => `${provider} didn’t finish signing you in. Try again.`,
@@ -397,6 +398,8 @@ export const JOHN_LIST_COPY = {
   needsPhoto: "needs a photo",
   perWeek: (points: number) =>
     `About ${Math.round(points)} points a week across the house. Changes apply from the next deal.`,
+  /** On a laptop, before the week's points over the list: "11 Johns." */
+  count: (n: number) => `${n} ${n === 1 ? "John" : "Johns"}.`,
   add: "Add a John",
   edit: (name: string) => `Edit ${name}`,
   hint: "Points are effort: 1 for taking the bins out, 5 for a deep clean, up to 20 for a whole day’s job.",
@@ -1321,6 +1324,28 @@ export const STAKE_HISTORY_COPY = {
   emptyMine: "Nothing of yours yet. Whole house shows everyone’s.",
 } as const;
 
+/**
+ * The foot of every long list (the Wall, History, the Audit log, and later
+ * Houses), the same everywhere: more loads as you near the end, and the foot
+ * says how far back you are, that it's reading, or that there's no more.
+ */
+export const LIST_COPY = {
+  loading: "Loading more",
+  /** For a keyboard, a screen reader, or a page too short to scroll. */
+  more: "Show more",
+  /** How far back what's shown goes, for a list without a count: "Showing back to Tue 27 Oct". */
+  backTo: (day: string) => `Showing back to ${day}`,
+  /** For a list with a count. */
+  of: (shown: number, total: number) => `Showing ${shown} of ${total}`,
+  /** Under the oldest there is. */
+  everything: "That’s everything.",
+  failed: "Couldn’t read any more. Check the connection.",
+  /** A busy admin list's search, taken back to everything. */
+  clear: "Clear",
+  noMatch: "Nothing matches",
+  noMatchBody: "Try other words, or clear the filters.",
+} as const;
+
 /** The whole Wall, by day. */
 export const WALL_FEED_COPY = {
   /** House's way to the whole Wall, and what it says to a screen reader. */
@@ -1329,9 +1354,6 @@ export const WALL_FEED_COPY = {
   emptyTitle: "Nothing on the Wall yet",
   reading: "Reading the Wall",
   unreadable: "Couldn’t read the Wall. Check the connection.",
-  loadOlder: "Load older",
-  /** Under the oldest event there is. */
-  everything: "That’s everything.",
   today: "Today",
   yesterday: "Yesterday",
   /** How long ago, after the meta line's words: "Checking, 3h". */

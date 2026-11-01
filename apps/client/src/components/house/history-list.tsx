@@ -6,6 +6,8 @@ import {
   historyFor,
   historyMeta,
   historyTime,
+  dayLabel,
+  LIST_COPY,
   type Currency,
   type HistoryItem,
 } from '@app/core';
@@ -16,16 +18,16 @@ import { StyleSheet, View } from 'react-native';
 import { undoAction } from '@/api/history';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
 import { EmptyState } from '@/components/empty-state';
 import { GroupItem } from '@/components/group';
+import { ListFoot, type ListMore } from '@/components/list-foot';
 import { Row } from '@/components/row';
 import { Section } from '@/components/section';
 import { Segmented } from '@/components/segmented';
 import { TextButton } from '@/components/text-button';
 import { useToastIfAny } from '@/components/toast';
 import { useMove } from '@/hooks/use-move';
-import { INSET, SPACE } from '@/theme';
+import { INSET } from '@/theme';
 
 export interface HistoryScene {
   houseId: string;
@@ -44,6 +46,8 @@ export interface HistoryScene {
  * first, each in words with its time, and Undo on the ones the database
  * says still reach (yours while they're open; anyone's, to an admin, until
  * the month is shared out). A refusal stays under the row it came from.
+ * Older moves load as you scroll (the screen's `nearEnd`), under the foot
+ * every long list has.
  */
 export function HistoryList({
   items,
@@ -52,7 +56,7 @@ export function HistoryList({
 }: {
   items: readonly HistoryItem[];
   scene: HistoryScene;
-  more: { has: boolean; busy: boolean; failed: boolean; load: () => void };
+  more: ListMore;
 }) {
   const [mine, setMine] = useState(false);
   const shown = historyFor(items, scene.me, mine);
@@ -83,12 +87,13 @@ export function HistoryList({
           </Section>
         ))
       )}
-      <View style={styles.foot}>
-        {more.failed ? <Alert message={HISTORY_COPY.moreFailed} /> : null}
-        {more.has ? (
-          <Button variant="outline" label={HISTORY_COPY.more} disabled={more.busy} onPress={more.load} testID="history-more" />
-        ) : null}
-      </View>
+      {items.length > 0 || more.has ? (
+        <ListFoot
+          more={more}
+          shown={items.length > 0 ? LIST_COPY.backTo(dayLabel(items[items.length - 1].at, scene.zone)) : null}
+          testID="history-foot"
+        />
+      ) : null}
     </>
   );
 }
@@ -135,5 +140,4 @@ function HistoryRow({ item, scene }: { item: HistoryItem; scene: HistoryScene })
 
 const styles = StyleSheet.create({
   pick: { paddingHorizontal: INSET, alignItems: 'flex-start' },
-  foot: { paddingHorizontal: INSET, gap: SPACE.md, alignItems: 'flex-start' },
 });

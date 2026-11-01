@@ -1,5 +1,5 @@
 import { FOCUS_SHELL_COPY, HOUSE_DRAFT_COPY } from '@app/core';
-import { Link, useRouter, type Href } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { ChevronLeftIcon, EllipsisIcon, SparklesIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHouseWorkspace } from '@/components/house/workspace';
 import { useContentWidth } from '@/components/screen';
 import { Meta, Title } from '@/components/text';
+import { IconButton } from '@/components/icon-button';
 import { useAskJonz, useAskPanelOpen } from '@/hooks/use-ask-jonz';
 import { FONT, GUTTER, INSET, SECTION_GAP, SPACE, TAP, TITLE_BAR, useTheme, WIDE } from '@/theme';
 
@@ -126,43 +127,28 @@ function BackLink({ to, label }: { to: Href; label: string }) {
  * chat's page.
  */
 function AskButton() {
-  const { colors } = useTheme();
   const ask = useAskJonz('toggle');
   const open = useAskPanelOpen();
-  const button = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={HOUSE_DRAFT_COPY.open}
-      aria-expanded={'onPress' in ask ? open : undefined}
-      onPress={'onPress' in ask ? ask.onPress : undefined}
-      testID="ask-jonz"
-      style={({ pressed }) => [styles.icon, styles.ask, styles.more, pressed && styles.pressed]}
-    >
-      <SparklesIcon size={22} color={colors.foreground} aria-hidden />
-    </Pressable>
-  );
-  return 'href' in ask ? (
-    <Link href={ask.href} asChild>
-      {button}
-    </Link>
-  ) : (
-    button
+  return (
+    <View style={[styles.ask, styles.more]}>
+      <IconButton
+        icon={SparklesIcon}
+        label={HOUSE_DRAFT_COPY.open}
+        expanded={'onPress' in ask ? open : undefined}
+        onPress={'onPress' in ask ? ask.onPress : undefined}
+        href={'href' in ask ? ask.href : undefined}
+        testID="ask-jonz"
+      />
+    </View>
   );
 }
 
 /** The title bar's "•••": opens the screen's ActionMenu. */
 export function MoreButton({ onPress, testID = 'more' }: { onPress: () => void; testID?: string }) {
-  const { colors } = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={FOCUS_SHELL_COPY.more}
-      onPress={onPress}
-      testID={testID}
-      style={({ pressed }) => [styles.icon, styles.more, pressed && styles.pressed]}
-    >
-      <EllipsisIcon size={24} color={colors.foreground} aria-hidden />
-    </Pressable>
+    <View style={styles.more}>
+      <IconButton icon={EllipsisIcon} label={FOCUS_SHELL_COPY.more} onPress={onPress} testID={testID} />
+    </View>
   );
 }
 
@@ -197,7 +183,6 @@ const styles = StyleSheet.create({
     paddingRight: SPACE.sm,
   },
   backWords: { fontFamily: FONT.bold },
-  icon: { width: TAP, height: TAP, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
   // The dots' right edge lines up with the content's.
   more: { marginRight: -SPACE.md },
   // Sits in the bar's own 4 above and below, like the dots.

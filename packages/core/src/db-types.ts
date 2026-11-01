@@ -34,6 +34,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletions: {
+        Row: {
+          away_ids: string[]
+          delete_after: string
+          ended_at: string | null
+          id: string
+          pass_resumed_at: string | null
+          pass_stopped_at: string | null
+          pass_subscription: string | null
+          requested_at: string
+          requested_by: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          away_ids?: string[]
+          delete_after: string
+          ended_at?: string | null
+          id?: string
+          pass_resumed_at?: string | null
+          pass_stopped_at?: string | null
+          pass_subscription?: string | null
+          requested_at?: string
+          requested_by: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          away_ids?: string[]
+          delete_after?: string
+          ended_at?: string | null
+          id?: string
+          pass_resumed_at?: string | null
+          pass_stopped_at?: string | null
+          pass_subscription?: string | null
+          requested_at?: string
+          requested_by?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_deletions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_audit: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          at: string
+          before: Json | null
+          id: number
+          reason: string | null
+          target_id: string | null
+          target_kind: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          id?: never
+          reason?: string | null
+          target_id?: string | null
+          target_kind: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          id?: never
+          reason?: string | null
+          target_id?: string | null
+          target_kind?: string
+        }
+        Relationships: []
+      }
+      app_owners: {
+        Row: {
+          added_at: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           absent_at: string | null
@@ -1092,6 +1193,48 @@ export type Database = {
           },
         ]
       }
+      notices: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          kind: string
+          link_label: string | null
+          link_url: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          kind: string
+          link_label?: string | null
+          link_url?: string | null
+          starts_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          link_label?: string | null
+          link_url?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_prefs: {
         Row: {
           checks: boolean
@@ -1190,18 +1333,21 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string
           id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name: string
           id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string
           id?: string
         }
@@ -1274,6 +1420,94 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_messages: {
+        Row: {
+          at: string
+          author: string | null
+          author_name: string | null
+          body: string
+          from_owner: boolean
+          id: number
+          report_id: string
+        }
+        Insert: {
+          at?: string
+          author?: string | null
+          author_name?: string | null
+          body: string
+          from_owner: boolean
+          id?: never
+          report_id: string
+        }
+        Update: {
+          at?: string
+          author?: string | null
+          author_name?: string | null
+          body?: string
+          from_owner?: boolean
+          id?: never
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_messages_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          details: Json | null
+          house_id: string | null
+          id: string
+          kind: string
+          seen_at: string
+          shots: string[]
+          state: string
+          updated_at: string
+          user_id: string | null
+          words: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          house_id?: string | null
+          id?: string
+          kind: string
+          seen_at?: string
+          shots?: string[]
+          state?: string
+          updated_at?: string
+          user_id?: string | null
+          words: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          house_id?: string | null
+          id?: string
+          kind?: string
+          seen_at?: string
+          shots?: string[]
+          state?: string
+          updated_at?: string
+          user_id?: string | null
+          words?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
             referencedColumns: ["id"]
           },
         ]
@@ -1461,6 +1695,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_deletion_preview: { Args: never; Returns: Json }
+      account_deletion_status: { Args: never; Returns: Json }
       add_correction: {
         Args: {
           p_amount: number
@@ -1568,7 +1804,15 @@ export type Database = {
         }
         Returns: string
       }
+      deletion_away: { Args: { p_until: string; p_user: string }; Returns: string[] }
       delete_group: { Args: { p_group: string }; Returns: undefined }
+      end_account_deletion: {
+        Args: { p_action: string; p_reason: string; p_user: string }
+        Returns: undefined
+      }
+      end_deletion_away: { Args: { p_away: string }; Returns: undefined }
+      end_notice: { Args: { p_id: string }; Returns: undefined }
+      finish_account_deletion: { Args: { p_user: string }; Returns: undefined }
       flag_sharers: { Args: { p_john: string }; Returns: string[] }
       hand_over: { Args: { p_house: string; p_to: string }; Returns: undefined }
       house_balances: {
@@ -1607,7 +1851,9 @@ export type Database = {
       is_admin: { Args: { h: string }; Returns: boolean }
       is_member: { Args: { h: string }; Returns: boolean }
       house_has_paid_pass: { Args: { p_house: string }; Returns: boolean }
+      is_owner: { Args: never; Returns: boolean }
       join_house: { Args: { p_code: string }; Returns: string }
+      keep_account: { Args: never; Returns: undefined }
       leave_pass: { Args: never; Returns: undefined }
       mark_done: {
         Args: { p_assignment: string; p_photo_path?: string }
@@ -1666,6 +1912,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      my_reports: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          kind: string
+          replies: number
+          state: string
+          unread: boolean
+          updated_at: string
+          words: string
+        }[]
+      }
       new_join_code: { Args: never; Returns: string }
       offer_swap: {
         Args: { p_mine: string; p_theirs: string }
@@ -1674,6 +1933,105 @@ export type Database = {
       open_flag: {
         Args: { p_at: string; p_by?: string; p_john: string }
         Returns: string
+      }
+      owner_delete_now: {
+        Args: { p_reason?: string; p_user: string }
+        Returns: undefined
+      }
+      owner_deletions: {
+        Args: never
+        Returns: {
+          delete_after: string
+          email: string
+          house_name: string
+          name: string
+          requested_at: string
+          requested_by: string
+          user_id: string
+        }[]
+      }
+      owner_deletions_count: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_by?: string
+          p_goes?: string
+          p_q?: string
+        }
+        Returns: number
+      }
+      owner_deletions_page: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_by?: string
+          p_cursor_at?: string
+          p_cursor_user?: string
+          p_goes?: string
+          p_limit?: number
+          p_q?: string
+        }
+        Returns: {
+          delete_after: string
+          email: string
+          house_name: string
+          name: string
+          requested_at: string
+          requested_by: string
+          user_id: string
+        }[]
+      }
+      owner_open_report: { Args: { p_report: string }; Returns: Json }
+      owner_reply_report: {
+        Args: { p_body: string; p_report: string }
+        Returns: Json
+      }
+      owner_reports_count: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_kind?: string
+          p_q?: string
+          p_state?: string
+        }
+        Returns: number
+      }
+      owner_reports_page: {
+        Args: {
+          p_after?: string
+          p_before?: string
+          p_cursor_at?: string
+          p_cursor_id?: string
+          p_kind?: string
+          p_limit?: number
+          p_q?: string
+          p_state?: string
+        }
+        Returns: {
+          created_at: string
+          email: string
+          house_name: string
+          id: string
+          kind: string
+          name: string
+          state: string
+          updated_at: string
+          user_id: string
+          words: string
+        }[]
+      }
+      owner_request_deletion: {
+        Args: { p_email: string; p_reason?: string }
+        Returns: string
+      }
+      owner_set_report_state: {
+        Args: { p_report: string; p_state: string }
+        Returns: undefined
+      }
+      owner_status: { Args: never; Returns: Json }
+      owner_stop_deletion: {
+        Args: { p_reason?: string; p_user: string }
+        Returns: undefined
       }
       plan_john: {
         Args: { p_assignment: string; p_at: string }
@@ -1689,6 +2047,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      quietly: { Args: { p_on: boolean }; Returns: undefined }
       raise_dispute: {
         Args: { p_assignment: string; p_reason: string }
         Returns: string
@@ -1701,6 +2060,7 @@ export type Database = {
         Args: { p_house: string; p_user: string }
         Returns: undefined
       }
+      request_account_deletion: { Args: never; Returns: string }
       request_tick: { Args: never; Returns: undefined }
       require_user: { Args: never; Returns: string }
       reset_bump: {
@@ -1737,6 +2097,19 @@ export type Database = {
         }
         Returns: string
       }
+      save_notice: {
+        Args: {
+          p_body: string
+          p_ends_at: string | null
+          p_id: string | null
+          p_kind: string
+          p_link_label: string | null
+          p_link_url: string | null
+          p_starts_at: string | null
+          p_title: string
+        }
+        Returns: string
+      }
       save_prefs: {
         Args: {
           p_best_time: string
@@ -1745,6 +2118,16 @@ export type Database = {
           p_rather: Json
         }
         Returns: undefined
+      }
+      see_report: { Args: { p_report: string }; Returns: undefined }
+      send_report: {
+        Args: {
+          p_details?: Json
+          p_kind: string
+          p_shots?: string[]
+          p_words: string
+        }
+        Returns: string
       }
       set_away: {
         Args: { p_ends: string; p_note?: string; p_starts: string }
@@ -1758,6 +2141,10 @@ export type Database = {
       set_my_photo: { Args: { photo: string }; Returns: undefined }
       settle_assignments: { Args: { p_items: Json }; Returns: number }
       shares_house: { Args: { other: string }; Returns: boolean }
+      start_away: {
+        Args: { p_ends: string; p_note: string; p_starts: string; p_user: string }
+        Returns: number
+      }
       start_house_from: {
         Args: {
           p_currency: string
@@ -1787,6 +2174,10 @@ export type Database = {
       use_swap: {
         Args: { p_mine: string; p_theirs: string }
         Returns: undefined
+      }
+      write_back: {
+        Args: { p_body: string; p_report: string }
+        Returns: string
       }
     }
     Enums: {

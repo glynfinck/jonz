@@ -4,9 +4,9 @@ import { XIcon } from 'lucide-react-native';
 import { useContext } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { Button } from '@/components/button';
 import { AskJonz } from '@/components/house/ask-jonz';
 import { TitleBar } from '@/components/title-bar';
+import { IconButton } from '@/components/icon-button';
 import { AskPanelContext } from '@/hooks/use-ask-jonz';
 import { useTheme, WIDE } from '@/theme';
 
@@ -37,7 +37,7 @@ export function AskPanel({ houseId, userId }: { houseId: string; userId: string 
         bar={(title) => (
           <TitleBar
             title={title}
-            right={<Button variant="ghost" icon={XIcon} label={SHELL_COPY.close} iconOnly onPress={close} testID="ask-close" />}
+            right={<IconButton icon={XIcon} label={SHELL_COPY.close} onPress={close} testID="ask-close" />}
           />
         )}
         onOpenList={() => router.navigate('/house/johns')}

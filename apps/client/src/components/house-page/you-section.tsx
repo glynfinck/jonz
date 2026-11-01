@@ -1,25 +1,31 @@
-import { dateRange, HOUSE_COPY, HOUSE_LOWER_COPY, LOOK_LABEL, LOOKS, ME_COPY, MOVING_COPY, prefsLine, STEADY_COPY } from '@app/core';
-import { BellIcon, LogOutIcon, SlidersHorizontalIcon, SunMoonIcon, TruckIcon } from 'lucide-react-native';
+import { dateRange, DELETE_COPY, EMAIL_SIGN_IN_COPY, emailAuthProblem, HOUSE_COPY, HOUSE_LOWER_COPY, LOOK_LABEL, LOOKS, ME_COPY, MOVING_COPY, PASSWORD_MIN, PASSWORD_SETTING_COPY, passwordProblem, prefsLine, STEADY_COPY } from '@app/core';
+import { BellIcon, KeyRoundIcon, LogOutIcon, SlidersHorizontalIcon, SunMoonIcon, Trash2Icon, TruckIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { signOut } from '@/api/auth';
+import { emailSignIn, setPassword } from '@/api/email-auth';
 import { renameMe } from '@/api/profile';
 import { reminderSupport, remindersOn } from '@/api/push';
+import { DeleteAccountForm } from '@/components/account/delete-account';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { Field } from '@/components/field';
 import { Reminders } from '@/components/house/reminders';
 import { useHouseWorkspace } from '@/components/house/workspace';
+import { HelpSection } from '@/components/house-page/help-section';
 import { PendingMeta } from '@/components/house-page/setup-section';
 import { Row, RowIcon } from '@/components/row';
 import { Section } from '@/components/section';
 import { Segmented } from '@/components/segmented';
 import { Sheet } from '@/components/sheet';
+import { HiddenUsername, SignInForm } from '@/components/sign-in-form';
+import { Meta } from '@/components/text';
 import { useLook } from '@/hooks/look';
 import type { HouseView } from '@/hooks/use-house';
 import { useMove } from '@/hooks/use-move';
+import { INSET, SECTION_GAP, SPACE, useTheme } from '@/theme';
 
 const LOOK_OPTIONS = LOOKS.map((value) => ({ value, label: LOOK_LABEL[value] }));
 
@@ -27,13 +33,18 @@ const LOOK_OPTIONS = LOOKS.map((value) => ({ value, label: LOOK_LABEL[value] }))
  * You: your name (a sheet to change it), reminders on this device (a sheet
  * holding their switch, where there are any to offer), your preferences in
  * this house (their own page; on a laptop it's in the list beside House
- * instead), your moving-out date (its own page), the look in the row
- * itself, and signing out. Reminders and the
- * look are this device's own.
+ * instead), the look in the row itself, a password to sign in with by
+ * email (a sheet), and signing out. Reminders and the look are this
+ * device's own. Then Leave: your moving-out date (its own page) and Delete
+ * my account, in hazard (a sheet), with a line saying it's on the web too.
  */
 export function YouSection({ houseId, userId, view }: { houseId: string; userId: string; view: HouseView }) {
   const [look, setLook] = useLook();
-  const [sheet, setSheet] = useState<'name' | 'reminders' | null>(null);
+  const { colors } = useTheme();
+  const [sheet, setSheet] = useState<'name' | 'reminders' | 'password' | 'delete' | null>(null);
+  const account = useEmailSignIn(sheet);
+  const email = account?.email ?? null;
+  const hasPassword = account?.hasPassword ?? false;
   // Each opening of the name sheet starts from the name as it is.
   const [opened, setOpened] = useState(0);
   const reminders = useReminderState();
@@ -56,7 +67,7 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
   }
 
   return (
-    <View testID="you-section">
+    <View testID="you-section" style={styles.sections}>
       <Section label={HOUSE_COPY.you}>
         <Row
           leading={<Avatar name={name} userId={userId} me />}
@@ -90,18 +101,23 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
           />
         )}
         <Row
-          leading={<RowIcon icon={TruckIcon} />}
-          title={MOVING_COPY.row}
-          meta={movingOutOn ? dateRange(movingOutOn, movingOutOn) : MOVING_COPY.notPlanned}
-          href="/house/moving"
-          chevron
-          testID="to-moving"
-        />
-        <Row
           leading={<RowIcon icon={SunMoonIcon} />}
           title={HOUSE_LOWER_COPY.look}
           trailing={<Segmented options={LOOK_OPTIONS} value={look} onChange={setLook} label={ME_COPY.look} testID="look" />}
         />
+        {email ? (
+          <Row
+            leading={<RowIcon icon={KeyRoundIcon} />}
+            title={PASSWORD_SETTING_COPY.label}
+            meta={hasPassword ? PASSWORD_SETTING_COPY.change : PASSWORD_SETTING_COPY.add}
+            onPress={() => {
+              setOpened((n) => n + 1);
+              setSheet('password');
+            }}
+            chevron
+            testID="to-password"
+          />
+        ) : null}
         <Row
           leading={<RowIcon icon={LogOutIcon} />}
           title={HOUSE_LOWER_COPY.signOut}
@@ -110,6 +126,29 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
           testID="sign-out"
         />
       </Section>
+
+      <HelpSection house={view.snapshot.house.name} />
+
+      <View style={styles.leave}>
+        <Section label={DELETE_COPY.leave}>
+          <Row
+            leading={<RowIcon icon={TruckIcon} />}
+            title={MOVING_COPY.row}
+            meta={movingOutOn ? dateRange(movingOutOn, movingOutOn) : MOVING_COPY.notPlanned}
+            href="/house/moving"
+            chevron
+            testID="to-moving"
+          />
+          <Row
+            leading={<Trash2Icon size={24} color={colors.hazard} aria-hidden />}
+            title={DELETE_COPY.row}
+            tone="hazard"
+            onPress={() => setSheet('delete')}
+            testID="to-delete-account"
+          />
+        </Section>
+        <Meta style={styles.elsewhere}>{DELETE_COPY.elsewhere}</Meta>
+      </View>
 
       <NameSheet
         key={opened}
@@ -129,8 +168,38 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
         {/* The sheet's title says Reminders, so the control doesn't again. */}
         <Reminders userId={userId} labelled={false} />
       </Sheet>
+      {email ? (
+        <PasswordSheet
+          key={`password-${opened}`}
+          visible={sheet === 'password'}
+          email={email}
+          hasPassword={hasPassword}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      <Sheet visible={sheet === 'delete'} title={DELETE_COPY.title} onClose={() => setSheet(null)} testID="delete-sheet">
+        <DeleteAccountForm onKeep={() => setSheet(null)} />
+      </Sheet>
     </View>
   );
+}
+
+/** Your sign-in email and whether it has a password, read again whenever a sheet closes. */
+function useEmailSignIn(sheet: string | null) {
+  const [account, setAccount] = useState<{ email: string; hasPassword: boolean } | null>(null);
+  useEffect(() => {
+    if (sheet) return;
+    let active = true;
+    emailSignIn()
+      .then((next) => {
+        if (active) setAccount(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [sheet]);
+  return account;
 }
 
 /** Whether this device offers reminders, and whether they're on now (null until asked). */
@@ -192,3 +261,90 @@ function NameSheet({
     </Sheet>
   );
 }
+
+/**
+ * A password beside Google, Microsoft or Apple, or a new one: one field and
+ * Save. Supabase holds it; the next sign-in by email uses it.
+ */
+function PasswordSheet({
+  visible,
+  email,
+  hasPassword,
+  onClose,
+}: {
+  visible: boolean;
+  email: string;
+  hasPassword: boolean;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    if (busy) return;
+    const short = passwordProblem(value);
+    if (short) return setProblem(short);
+    setBusy(true);
+    setProblem(null);
+    try {
+      await setPassword(value);
+      setSaved(true);
+      setValue('');
+    } catch (reason) {
+      console.warn('Saving the password failed', reason);
+      setProblem(emailAuthProblem(reason as { code?: string; status?: number }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      visible={visible}
+      title={hasPassword ? PASSWORD_SETTING_COPY.change : PASSWORD_SETTING_COPY.add}
+      onClose={onClose}
+      testID="password-sheet"
+    >
+      <Meta>{hasPassword ? PASSWORD_SETTING_COPY.changeBody(email) : PASSWORD_SETTING_COPY.addBody(email)}</Meta>
+      <SignInForm onSubmit={() => void save()} style={styles.leave}>
+        <HiddenUsername email={email} />
+        <Field
+          label={EMAIL_SIGN_IN_COPY.newPassword}
+          hint={EMAIL_SIGN_IN_COPY.passwordHint}
+          value={value}
+          onChangeText={(text) => {
+            setValue(text);
+            setSaved(false);
+          }}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          passwordRules={`minlength: ${PASSWORD_MIN};`}
+          nativeID="new-password"
+          returnKeyType="done"
+          // The web form sends itself on Enter.
+          onSubmitEditing={Platform.OS === 'web' ? undefined : () => void save()}
+          testID="new-password"
+        />
+        {problem ? <Alert message={problem} /> : saved ? <Meta>{PASSWORD_SETTING_COPY.saved}</Meta> : null}
+        <Button
+          label={busy ? PASSWORD_SETTING_COPY.busy : PASSWORD_SETTING_COPY.save}
+          disabled={busy || value.length === 0}
+          onPress={() => void save()}
+          testID="save-password"
+        />
+      </SignInForm>
+    </Sheet>
+  );
+}
+
+const styles = StyleSheet.create({
+  sections: { gap: SECTION_GAP },
+  leave: { gap: SPACE.sm },
+  elsewhere: { paddingLeft: INSET },
+});
