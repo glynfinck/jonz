@@ -84,7 +84,7 @@ something you asked), and quiet hours still make them silent.
 
 - **Step 2, email both ways**: mail to support@jonz.app becomes a report in
   the Inbox (Resend inbound), a From filter (app or email), a public
-  jonz.app/help, and moving `LEGAL.email`, the README and CONTRIBUTING off
+  jonz.app/help, and moving the README and CONTRIBUTING off
   Gmail and GitHub issues.
 - **Step 3**: "Tell us what happened" on the crash screen, "Same as…" to fold
   duplicates together, and telling everyone who reported it when it's fixed.

@@ -15,7 +15,7 @@ export const LEGAL = {
   /** Who runs Jonz: the "we" of both pages. */
   operator: "Glyn Finck",
   /** Where questions, deletion requests and complaints go. */
-  email: "glynfinck@gmail.com",
+  email: "support@jonz.app",
   /** Whose courts and law the Terms name. */
   law: "England and Wales",
   /** When either page last changed in substance. */
