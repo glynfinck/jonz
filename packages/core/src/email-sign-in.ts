@@ -18,7 +18,7 @@ export const CODE_LENGTH = 6;
 export const EMAIL_SIGN_IN_COPY = {
   or: "or use your email",
   name: "Your name",
-  nameHint: "What your housemates see. You can change it later.",
+  nameHint: "What your housemates call you, like Sam or Sam Lee. You can change it later.",
   noName: "Add your name, so your housemates know it’s you.",
   email: "Email",
   password: "Password",
