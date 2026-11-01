@@ -38,6 +38,22 @@ export const TAP = 48;
 
 export const RADIUS = BIN_NIGHT.radius;
 
+/** An icon beside a control's words (a button's tick, a link's chevron). */
+export const ICON = 20;
+
+/** The glyph in an icon-only control (close, •••, the sparkles): one size everywhere, in a TAP square. */
+export const ICON_ONLY = 22;
+
+/**
+ * The narrowest a button in a ButtonRow may be before the row stacks: about
+ * "Mark fixed" with its icon. Below it, the buttons go full width, one under
+ * another, rather than cut or squeeze their words.
+ */
+export const BUTTON_MIN = 136;
+
+/** A form's column on a laptop: sign-in, a report, a setting's editor. */
+export const FORM_MAX = 520;
+
 /** Width from which the web layout spreads out (Tailwind's `lg`): the rail instead of the tabs. */
 export const WIDE = 1024;
 

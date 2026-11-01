@@ -3,7 +3,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/components/button';
+import { IconButton } from '@/components/icon-button';
 import { FONT, RADIUS, SPACE, TAP, useTheme } from '@/theme';
 
 /** A run of days being picked: neither end yet, the first, or both. */
@@ -54,11 +54,9 @@ export function AwayDates({
   return (
     <View style={styles.calendar} testID="date-range">
       <View style={styles.head}>
-        <Button
-          variant="ghost"
+        <IconButton
           icon={ChevronLeftIcon}
           label={SETUP_COPY.earlier}
-          iconOnly
           disabled={from === 0}
           onPress={() => setFrom((was) => Math.max(0, was - STEP))}
         />
@@ -66,7 +64,7 @@ export function AwayDates({
         <Text style={[type.rowTitle, styles.span]} numberOfLines={2} accessibilityLiveRegion="polite">
           {span}
         </Text>
-        <Button variant="ghost" icon={ChevronRightIcon} label={SETUP_COPY.later} iconOnly onPress={() => setFrom((was) => was + STEP)} />
+        <IconButton icon={ChevronRightIcon} label={SETUP_COPY.later} onPress={() => setFrom((was) => was + STEP)} />
       </View>
       <View style={styles.week} aria-hidden>
         {days.map((d) => (

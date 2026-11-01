@@ -49,3 +49,48 @@ describe("Bin Night", () => {
     expect(withAlpha("#c8410c", -1)).toBe("#c8410c00");
   });
 });
+
+// docs/style/feel.md, Contrast: WCAG 1.4.3 asks 4.5 to 1 for words, 1.4.11
+// asks 3 to 1 for icons, edges and focus rings, in Day and Night.
+describe("Bin Night contrast", () => {
+  function luminance(hex: string): number {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function contrast(a: string, b: string): number {
+    const [x, y] = [luminance(a), luminance(b)];
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+
+  for (const scheme of ["light", "dark"] as const) {
+    const s = BIN_NIGHT[scheme];
+    it(`${scheme}: words read at 4.5 to 1`, () => {
+      const words: [string, string, string][] = [
+        ["foreground", s.foreground, s.background],
+        ["foreground on card", s.foreground, s.card],
+        ["muted", s.mutedForeground, s.background],
+        ["muted on card", s.mutedForeground, s.card],
+        ["muted on the tint", s.mutedForeground, s.secondary],
+        ["ink on amber", s.onHivis, s.hivis],
+        ["white on hazard", s.onHazard, s.hazard],
+        // Hazard and green as words sit on a card or a group, never the bare pavement.
+        ["hazard on card", s.hazard, s.card],
+        ["good on card", s.good, s.card],
+      ];
+      for (const [name, a, b] of words) expect([name, contrast(a, b) >= 4.5]).toEqual([name, true]);
+    });
+    it(`${scheme}: icons, edges and lids read at 3 to 1`, () => {
+      const marks: [string, string, string][] = [
+        ["hazard icon", s.hazard, s.background],
+        ["good tick", s.good, s.background],
+        ["outline edge", s.mutedForeground, s.background],
+        ["focus ring", s.ring, s.background],
+        ...Object.entries(s.bin).map(([k, c]): [string, string, string] => [`lid ${k}`, c, s.card]),
+      ];
+      for (const [name, a, b] of marks) expect([name, contrast(a, b) >= 3]).toEqual([name, true]);
+    });
+  }
+});

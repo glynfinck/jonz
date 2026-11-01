@@ -22,6 +22,7 @@ import { spendImmunity, spendSwap } from '@/api/johns';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
+import { ButtonRow } from '@/components/button-row';
 import { GroupItem } from '@/components/group';
 import { PlanIt } from '@/components/plan-it';
 import { Row, RowIcon } from '@/components/row';
@@ -165,25 +166,21 @@ function IfYouCant({
             skipping ? (
               <GroupItem testID="skip-confirm">
                 <Body>{JOHN_SHEET_COPY.skipSentence(item.name, cant.immunity - 1)}</Body>
-                <View style={styles.pair}>
-                  <View style={styles.half}>
-                    <Button
-                      variant="outline"
-                      icon={ShieldIcon}
-                      label={JOHN_SHEET_COPY.skipIt}
-                      disabled={move.pending}
-                      onPress={() =>
-                        void move.run(() => spendImmunity(item.id)).then((done) => {
-                          if (done) offer(HISTORY_COPY.immunity, 'immunity', item.id);
-                        })
-                      }
-                      testID="skip-it"
-                    />
-                  </View>
-                  <View style={styles.half}>
-                    <Button variant="ghost" label={FOCUS_SHELL_COPY.cancel} onPress={() => setSkipping(false)} />
-                  </View>
-                </View>
+                <ButtonRow>
+                  <Button
+                    variant="outline"
+                    icon={ShieldIcon}
+                    label={JOHN_SHEET_COPY.skipIt}
+                    disabled={move.pending}
+                    onPress={() =>
+                      void move.run(() => spendImmunity(item.id)).then((done) => {
+                        if (done) offer(HISTORY_COPY.immunity, 'immunity', item.id);
+                      })
+                    }
+                    testID="skip-it"
+                  />
+                  <Button variant="ghost" label={FOCUS_SHELL_COPY.cancel} onPress={() => setSkipping(false)} />
+                </ButtonRow>
                 {move.problem ? <Alert message={move.problem} /> : null}
               </GroupItem>
             ) : (
@@ -384,10 +381,8 @@ function Cover({ item, context, body }: { item: BoardItem; context: JohnSheetCon
 }
 
 const styles = StyleSheet.create({
-  pair: { flexDirection: 'row', gap: SPACE.sm },
   // The pick: an ink disc with a tick, where the row's mark was.
   chosen: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  half: { flex: 1 },
   owner: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   shrink: { flexShrink: 1 },
 });

@@ -6,13 +6,14 @@ import { answerSwap, askSwap } from '@/api/johns';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
+import { ButtonRow } from '@/components/button-row';
 import { Group, GroupItem } from '@/components/group';
 import { Row } from '@/components/row';
 import { Section } from '@/components/section';
 import { Body, Meta } from '@/components/text';
 import { useToastIfAny } from '@/components/toast';
 import { useMove } from '@/hooks/use-move';
-import { INSET, LABEL_GAP, SPACE } from '@/theme';
+import { INSET, LABEL_GAP } from '@/theme';
 
 /**
  * A John you'd rather not, on Today: who would rather do it and which of
@@ -72,14 +73,10 @@ export function SwapOfferCard({ houseId, offer, nameOf }: { houseId: string; off
     <Section label={offer.title} leading={<Avatar name={nameOf(offer.fromUserId)} userId={offer.fromUserId} size={24} />} testID="swap-offer">
       <GroupItem>
         <Body>{offer.body}</Body>
-        <View style={styles.pair}>
-          <View style={styles.half}>
-            <Button icon={RepeatIcon} label={STEADY_COPY.accept} disabled={move.pending} onPress={() => void answer(true)} testID="accept-swap" />
-          </View>
-          <View style={styles.half}>
-            <Button variant="ghost" label={STEADY_COPY.decline} disabled={move.pending} onPress={() => void answer(false)} testID="decline-swap" />
-          </View>
-        </View>
+        <ButtonRow>
+          <Button icon={RepeatIcon} label={STEADY_COPY.accept} disabled={move.pending} onPress={() => void answer(true)} testID="accept-swap" />
+          <Button variant="ghost" label={STEADY_COPY.decline} disabled={move.pending} onPress={() => void answer(false)} testID="decline-swap" />
+        </ButtonRow>
         {move.problem ? <Alert message={move.problem} /> : null}
       </GroupItem>
     </Section>
@@ -90,6 +87,4 @@ const styles = StyleSheet.create({
   noted: { gap: LABEL_GAP },
   // A line under a group, on the leading edge.
   note: { paddingHorizontal: INSET },
-  pair: { flexDirection: 'row', gap: SPACE.sm },
-  half: { flex: 1 },
 });
