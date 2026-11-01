@@ -20,6 +20,10 @@ export const EMAIL_SIGN_IN_COPY = {
   name: "Your name",
   nameHint: "What your housemates call you, like Sam or Sam Lee. You can change it later.",
   noName: "Add your name, so your housemates know it’s you.",
+  /** The tick box on making an account: agreeing is a tick, not a line under the button. */
+  agree: "I agree to the Terms and Privacy Policy",
+  agreeMeta: "And I’m 13 or older.",
+  noAgree: "Tick the box to agree to the Terms and say you’re 13 or older.",
   email: "Email",
   password: "Password",
   newPassword: "New password",

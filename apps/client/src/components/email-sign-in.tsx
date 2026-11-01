@@ -23,6 +23,8 @@ import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
 import { CodeBoxes } from '@/components/code-boxes';
 import { Field } from '@/components/field';
+import { Group } from '@/components/group';
+import { ChoiceRow } from '@/components/setup/choice-row';
 import { HiddenUsername, SignInForm } from '@/components/sign-in-form';
 import { Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
@@ -43,6 +45,7 @@ export function EmailSignIn() {
   const { colors } = useTheme();
   const [step, setStep] = useState<EmailStep>('sign-in');
   const [name, setName] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -86,6 +89,7 @@ export function EmailSignIn() {
     const message = nameProblem(name);
     return message ? { field: 'name', message } : null;
   };
+  const agreeCheck = (): Problem | null => (agreed ? null : { message: COPY.noAgree });
   const emailCheck = (): Problem | null => (emailLooksRight(email) ? null : { field: 'email', message: COPY.badEmail });
   const passwordCheck = (): Problem | null => {
     const message = passwordProblem(password);
@@ -170,7 +174,7 @@ export function EmailSignIn() {
   );
   const signIn = () => run([emailCheck(), password ? null : passwordCheck()], () => signInWithEmail(email, password));
   const signUp = () =>
-    run([nameCheck(), emailCheck(), passwordCheck()], async () => {
+    run([nameCheck(), emailCheck(), passwordCheck(), agreeCheck()], async () => {
       if ((await signUpWithEmail(email, password, name)) === 'code-sent') go('confirm');
     });
   const confirm = () => run([codeCheck()], () => confirmEmail(email, code));
@@ -218,11 +222,22 @@ export function EmailSignIn() {
           {nameField}
           {emailField}
           {passwordField(true)}
+          <Group testID="email-agree">
+            <ChoiceRow
+              role="checkbox"
+              label={COPY.agree}
+              meta={COPY.agreeMeta}
+              checked={agreed}
+              onPress={() => setAgreed((on) => !on)}
+              disabled={busy}
+              testID="email-agree-box"
+            />
+          </Group>
           {loose}
           <Button
             label={busy ? COPY.signUpBusy : COPY.signUp}
             disabled={busy}
-onPress={() => void signUp()}
+            onPress={() => void signUp()}
             testID="email-sign-up-button"
           />
           <TextButton label={COPY.toSignIn} align="start" onPress={() => go('sign-in')} disabled={busy} />
@@ -274,6 +289,17 @@ onPress={() => void forgot()}
           <HiddenUsername email={email.trim()} />
           {codeField(COPY.resetBody(email.trim()))}
           {passwordField(true)}
+          <Group testID="email-agree">
+            <ChoiceRow
+              role="checkbox"
+              label={COPY.agree}
+              meta={COPY.agreeMeta}
+              checked={agreed}
+              onPress={() => setAgreed((on) => !on)}
+              disabled={busy}
+              testID="email-agree-box"
+            />
+          </Group>
           {loose}
           {told}
           <Button

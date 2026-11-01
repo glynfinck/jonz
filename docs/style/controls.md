@@ -67,6 +67,10 @@
   iOS); where the step has no email box, `HiddenUsername` names the account.
   No spellcheck or autocorrect on either. (Glyn, 1 Nov) *Backed by*
   Chrome's and Apple's password autofill guides.
+- **Making an account asks for one name box**, not first and last: what
+  your housemates call you. Agreeing to the Terms (and being 13 or older)
+  is a tick box you must tick, not a line under the button; no birthday.
+  (Glyn, 1 Nov) *Backed by* W3C and GOV.UK guidance on names.
 - **A short code is six boxes** (`CodeBoxes`): the admin code and the codes
   we email. The six are equal and span the column edge to edge with the
   button, each a little taller than wide (48 to 64). One real field lies

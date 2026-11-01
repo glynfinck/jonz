@@ -6,6 +6,7 @@ pages are private artifacts on claude.ai.
 
 | Date | Decision | Where | Rule |
 | --- | --- | --- | --- |
+| 2026-11-01 | Making an account with email asks for one name box (what housemates call you, no first and last) and a required tick box for the Terms and being 13 or older; no birthday | this PR | [controls](controls.md#inputs) |
 | 2026-11-01 | Every 6-digit code is six equal boxes edge to edge with the button, filled in for you where a phone or password manager can, and checked on the sixth digit | #90 | [controls](controls.md#inputs) |
 | 2026-11-01 | Sign-in works with password managers: real forms on the web, username and new-password boxes, Enter sends | #88 | [controls](controls.md#inputs) |
 | 2026-10-31 | Report a problem in the app: House › Help, a sheet that lists the details before they're sent, Your reports with replies, and the owner's Inbox as the first admin page | #87 | [lists](lists.md#admin-lists) |
