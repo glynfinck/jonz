@@ -21,6 +21,7 @@ import { Avatar } from '@/components/avatar';
 import { CountBadge } from '@/components/badge';
 import { Button } from '@/components/button';
 import { ButtonRow } from '@/components/button-row';
+import { CodeBoxes } from '@/components/code-boxes';
 import { DayChips } from '@/components/day-chips';
 import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/field';
@@ -154,10 +155,11 @@ export function Buttons() {
 
 const TICKS: readonly TickState[] = ['open', 'checking', 'done', 'disputed', 'busy'];
 
-/** Picking and typing: segments, day chips, tick boxes, fields and a fold. */
+/** Picking and typing: segments, day chips, tick boxes, fields, code boxes and a fold. */
 export function Choosing() {
   const [scope, setScope] = useState<'me' | 'house'>('me');
   const [days, setDays] = useState<IsoDow[]>([1, 3, 5]);
+  const [code, setCode] = useState('4829');
   return (
     <Section label="Choosing and typing" testID="style-choosing">
       <Group>
@@ -184,6 +186,7 @@ export function Choosing() {
         <GroupItem>
           <Field label="House name" defaultValue="Bin Street" hint="Housemates see this on the invite." />
           <Field label="Join code" defaultValue="AB12" problem="That code has been used up. Ask for a new one." />
+          <CodeBoxes label="Code" hint="It's in the email we sent." value={code} onChangeText={setCode} testID="style-code" />
         </GroupItem>
         <Fold label="Done today" meta={<Meta>1</Meta>} initiallyOpen>
           <Row title="Hoover the stairs" meta="Done 10am" lid="floors" leading={<TickBox state="done" label="Hoover the stairs" />} leadingControl />
