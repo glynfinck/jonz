@@ -1,6 +1,7 @@
 import { APP_NAME } from "./copy";
 import { LEGAL } from "./legal";
 import type { NoticeKind } from "./notices";
+import { type ReportKind, reportGist } from "./reports";
 import { escapeHtml } from "./share";
 
 // Jonz's emails, drawn once for every sender: the API sends them through
@@ -272,6 +273,41 @@ export function accountDeletedEmail(args: { name: string | null; deletedOn: stri
       { type: "small", text: "If you didn’t ask for this, reply to this email today." },
     ],
     why: "This is the last email this address gets from Jonz.",
+  });
+}
+
+/** Where someone reads a report and its replies in the app. */
+export const reportUrl = (id: string) => `${LEGAL.site}/house/reports/${id}`;
+
+/**
+ * A reply to someone's report, to the address they sign in with, beside the
+ * push. Replying to the email reaches support@jonz.app.
+ */
+export function reportReplyEmail(args: {
+  name: string | null;
+  signed: string | null;
+  kind: ReportKind;
+  words: string;
+  reply: string;
+  url: string;
+}): EmailMessage {
+  const who = args.signed ? `${args.signed} at ${APP_NAME}` : APP_NAME;
+  const paragraphs = args.reply
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return renderEmail({
+    subject: `Re: ${reportGist(args.words, 60)}`,
+    preheader: reportGist(args.reply, 90),
+    headline: "A reply to you",
+    lead: `${who} replied.`,
+    blocks: [
+      { type: "text", text: hi(args.name) },
+      ...paragraphs.map((text) => ({ type: "text" as const, text })),
+      { type: "button", label: "Open it in Jonz", url: args.url },
+      { type: "small", text: `You wrote: “${reportGist(args.words, 140)}”` },
+    ],
+    why: `You sent this ${args.kind} from ${APP_NAME}. Reply to this email, or write back in the app.`,
   });
 }
 

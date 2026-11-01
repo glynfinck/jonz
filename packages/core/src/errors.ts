@@ -79,6 +79,11 @@ const MESSAGES: Record<string, string> = {
   no_deletion: "That account isn’t waiting to be deleted any more.",
   no_account: "There’s no Jonz account with that email.",
   already_deleting: "That account is already waiting to be deleted.",
+  report_kind: "Pick a problem, an idea or a question.",
+  report_words: "Say what happened, in up to 2,000 letters.",
+  report_shot: "That screenshot didn’t upload. Add it again.",
+  report_limit: "That’s a lot for one day. Try again tomorrow, or email support@jonz.app.",
+  report_state: "A report can be marked fixed, or opened again.",
 };
 
 export function humanError(error: { message?: string; code?: string } | null | undefined): string {
