@@ -1,5 +1,6 @@
 import {
   BIN_NIGHT,
+  HOUSE_LOWER_COPY,
   buildStake,
   FOCUS_SHELL_COPY,
   HOUSE_PAGE_COPY,
@@ -480,8 +481,8 @@ describe('on a laptop', () => {
     expect(screen.getByTestId('house-nav')).toBeOnTheScreen();
     expect(screen.getAllByTestId('lower').map((node) => node.props.children)).toEqual(['the Wall', 'You', 'Leaving']);
     expect(screen.queryByTestId('pass-section')).toBeNull();
-    // Preferences too: the list has them, so You doesn't again.
-    expect(screen.getByTestId('nav-prefs')).toBeOnTheScreen();
+    // Preferences too: the list has them (on Days and time away), so You doesn't again.
+    expect(screen.getByTestId('nav-away')).toHaveTextContent(HOUSE_LOWER_COPY.away);
     expect(screen.queryByTestId('to-prefs')).toBeNull();
   });
 

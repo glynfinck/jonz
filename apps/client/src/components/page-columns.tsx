@@ -35,11 +35,30 @@ export function useSideBySide(): boolean {
  * Two stacks of sections side by side on a page that fills the room on a
  * laptop (`Screen` with `fills`): `start` takes `ratio` of the width to
  * `end`'s one, and they share a top edge. Where two columns of COLUMN_MIN
- * don't fit, and on a phone, it's one stack: `start`, then `end`.
+ * don't fit, and on a phone, it's one stack: `start`, then `end`, or `end`
+ * first with `endFirst` (what a phone comes to the page for, when that's
+ * the second column on a laptop).
  */
-export function Pair({ start, end, ratio = 1, testID }: { start: ReactNode; end: ReactNode; ratio?: number; testID?: string }) {
+export function Pair({
+  start,
+  end,
+  ratio = 1,
+  endFirst = false,
+  testID,
+}: {
+  start: ReactNode;
+  end: ReactNode;
+  ratio?: number;
+  endFirst?: boolean;
+  testID?: string;
+}) {
   if (!useSideBySide()) {
-    return (
+    return endFirst ? (
+      <>
+        {end}
+        {start}
+      </>
+    ) : (
       <>
         {start}
         {end}

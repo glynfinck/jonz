@@ -1,7 +1,9 @@
-import { FOCUS_SHELL_COPY, LIST_COPY, REACTION_LABEL, SECTION_LABEL, WALL_COPY, WALL_FEED_COPY, wallEvents, type WallRow } from '@app/core';
+import { FOCUS_SHELL_COPY, HISTORY_COPY, LIST_COPY, REACTION_LABEL, SECTION_LABEL, WALL_COPY, WALL_FEED_COPY, wallEvents, type WallRow } from '@app/core';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
+import { useWindowDimensions } from 'react-native';
 
 import { loadHouse } from '@/api/board';
+import { loadHistory } from '@/api/history';
 import { catchUp } from '@/api/house';
 import { loadWall, setReaction } from '@/api/wall';
 import WallScreen from '@/app/(house)/house/wall';
@@ -11,6 +13,13 @@ import { renderPages } from '@/testing/pages';
 jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
 jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
 jest.mock('@/api/wall', () => ({ loadWall: jest.fn(), setReaction: jest.fn() }));
+// History, beside the Wall on a laptop and behind a switch on a phone (house-history.test.tsx).
+jest.mock('@/api/history', () => ({ HISTORY_PAGE: 60, loadHistory: jest.fn(), undoAction: jest.fn() }));
+// A phone unless a test says otherwise.
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ width: 390, height: 844, scale: 1, fontScale: 1 })),
+}));
 jest.mock('@/api/supabase', () => ({ supabase: {} }));
 const mockOpen = jest.fn();
 jest.mock('@/components/john-sheet', () => ({ useJohnSheet: () => ({ open: mockOpen, close: jest.fn() }) }));
@@ -90,6 +99,7 @@ beforeEach(() => {
     ),
   );
   (setReaction as jest.Mock).mockResolvedValue(undefined);
+  (loadHistory as jest.Mock).mockResolvedValue([]);
 });
 
 afterEach(() => jest.useRealTimers());
@@ -232,4 +242,20 @@ it('sits under a title bar with the way back to House', async () => {
   const bar = within(screen.getByTestId('title-bar'));
   expect(bar.getByRole('header', { name: WALL_COPY.title })).toBeOnTheScreen();
   expect(bar.getByRole('button', { name: FOCUS_SHELL_COPY.backTo(SECTION_LABEL.house) })).toBeOnTheScreen();
+});
+
+it('shows History beside the Wall on a laptop, under its name, and a switch between them on a phone', async () => {
+  await open();
+  expect(within(screen.getByTestId('wall-shows')).getByRole('radio', { name: WALL_COPY.title })).toBeChecked();
+  expect(screen.queryByTestId('history-section')).toBeNull();
+
+  (useWindowDimensions as jest.Mock).mockReturnValue({ width: 1440, height: 900, scale: 1, fontScale: 1 });
+  await open();
+  expect(screen.queryByTestId('wall-shows')).toBeNull();
+  expect(within(screen.getByTestId('wall-pair-start')).getAllByTestId('wall-day').length).toBeGreaterThan(0);
+  const history = within(screen.getByTestId('wall-pair-end'));
+  expect(history.getAllByRole('header', { name: HISTORY_COPY.title })[0]).toBeOnTheScreen();
+  expect(history.getByText(HISTORY_COPY.meta)).toBeOnTheScreen();
+  expect(await history.findByTestId('history-empty')).toBeOnTheScreen();
+  (useWindowDimensions as jest.Mock).mockReturnValue({ width: 390, height: 844, scale: 1, fontScale: 1 });
 });

@@ -31,7 +31,7 @@ import { Field } from '@/components/field';
 import { Group, GroupItem } from '@/components/group';
 import { TimingPicker, TimingSentence, type TimingWord } from '@/components/house/john-timing';
 import { useHouseWorkspace } from '@/components/house/workspace';
-import { Flow } from '@/components/page-columns';
+import { Flow, type FlowItem } from '@/components/page-columns';
 import { Row, RowIcon } from '@/components/row';
 import { useFilled } from '@/components/screen';
 import { Section } from '@/components/section';
@@ -63,6 +63,7 @@ export function JohnList({
   editable,
   whoAdds,
   quietAdd = false,
+  more,
 }: {
   houseId: string;
   rules: HouseRules;
@@ -73,6 +74,8 @@ export function JohnList({
   whoAdds?: string;
   /** Add a John in outline over the list on a laptop, for a page whose one amber button is another (the first deal). */
   quietAdd?: boolean;
+  /** On a laptop, more sections to sit among the kinds (the house's groups). */
+  more?: readonly FlowItem[];
 }) {
   const [editing, setEditing] = useState<Draft | null>(null);
   const [reading, setReading] = useState<JohnDef | null>(null);
@@ -149,33 +152,35 @@ export function JohnList({
           ) : null}
           <Flow
             testID="john-kinds"
-            items={johnsByKind(johns).map((kind) => ({
-              key: kind.category,
-              // A John's row is about two lines; the kind's name about one.
-              weight: kind.johns.length + 1,
-              node: (
-                <Section label={kind.label} testID={`kind-${kind.category}`}>
-                  {kind.johns.map((j) => {
-                    const schedule = scheduleLine(j, groupName(j.groupId));
-                    const line = [schedule, j.crew === 1 ? null : CREW_COPY.choice(j.crew), j.keepDay ? STEADY_COPY.keepsDay : null]
-                      .filter(Boolean)
-                      .join(', ');
-                    return (
-                      <Row
-                        key={j.id}
-                        title={j.name}
-                        lid={j.category}
-                        meta={line}
-                        trailing={pointsLabel(j.points)}
-                        onPress={() => (editable ? edit(j) : read(j))}
-                        accessibilityLabel={editable ? `${JOHN_LIST_COPY.edit(j.name)}, ${line}, ${pointsLabel(j.points)}` : undefined}
-                        testID="john-def"
-                      />
-                    );
-                  })}
-                </Section>
-              ),
-            }))}
+            items={johnsByKind(johns)
+              .map((kind): FlowItem => ({
+                key: kind.category,
+                // A John's row is about two lines; the kind's name about one.
+                weight: kind.johns.length + 1,
+                node: (
+                  <Section label={kind.label} testID={`kind-${kind.category}`}>
+                    {kind.johns.map((j) => {
+                      const schedule = scheduleLine(j, groupName(j.groupId));
+                      const line = [schedule, j.crew === 1 ? null : CREW_COPY.choice(j.crew), j.keepDay ? STEADY_COPY.keepsDay : null]
+                        .filter(Boolean)
+                        .join(', ');
+                      return (
+                        <Row
+                          key={j.id}
+                          title={j.name}
+                          lid={j.category}
+                          meta={line}
+                          trailing={pointsLabel(j.points)}
+                          onPress={() => (editable ? edit(j) : read(j))}
+                          accessibilityLabel={editable ? `${JOHN_LIST_COPY.edit(j.name)}, ${line}, ${pointsLabel(j.points)}` : undefined}
+                          testID="john-def"
+                        />
+                      );
+                    })}
+                  </Section>
+                ),
+              }))
+              .concat(more ?? [])}
           />
         </>
       )}

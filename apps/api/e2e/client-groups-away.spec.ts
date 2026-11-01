@@ -53,8 +53,9 @@ test("make a group, give it a John, and book time away", async ({ browser }) => 
   const db = admin();
 
   const page = await avaContext.newPage();
-  await page.goto("/house/groups");
-  const groups = page.getByTestId("groups-screen");
+  // Groups are on the John list, among the Johns they share.
+  await page.goto("/house/johns");
+  const groups = page.getByTestId("johns-groups");
   await expect(groups.getByText(GROUPS_COPY.empty)).toBeVisible();
 
   // A group of the people who share the upstairs bathroom: Ava alone.
@@ -66,8 +67,7 @@ test("make a group, give it a John, and book time away", async ({ browser }) => 
   await expect(groupForm).toBeHidden();
   await expect(groups.getByTestId("group")).toContainText("Upstairs bathroom");
 
-  // A John only that group is handed, on the John list.
-  await page.goto("/house/johns");
+  // A John only that group is handed, on the same list.
   const list = page.getByTestId("johns-screen");
   await list.getByTestId("add-john").click();
   const johnForm = page.getByTestId("john-form");
@@ -114,9 +114,11 @@ test("make a group, give it a John, and book time away", async ({ browser }) => 
   await expect(avasTrip).toContainText(AWAY_COPY.backOn(dateRange(addDaysTo(to, 1), addDaysTo(to, 1))));
   await expect(avasTrip).toContainText("Lisbon");
   await benPage.getByTestId("sheet-close").click();
+  // An old link to Groups lands on the John list.
   await benPage.goto("/house/groups");
-  await expect(benPage.getByTestId("groups-screen").getByTestId("group")).toBeVisible();
-  await expect(benPage.getByTestId("groups-screen").getByTestId("add-group")).toHaveCount(0);
+  await expect(benPage).toHaveURL(/\/house\/johns$/);
+  await expect(benPage.getByTestId("johns-groups").getByTestId("group")).toBeVisible();
+  await expect(benPage.getByTestId("johns-groups").getByTestId("add-group")).toHaveCount(0);
 
   // Ava changes her mind.
   await page.goto("/house/away");

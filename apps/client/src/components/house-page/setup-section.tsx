@@ -1,5 +1,5 @@
-import { ADMINS_COPY, FOCUS_SHELL_COPY, HISTORY_COPY, HOUSE_LOWER_COPY, houseSetupValues, localDate } from '@app/core';
-import { HistoryIcon, ListTodoIcon, PlaneIcon, ScrollTextIcon, ShieldCheckIcon, UsersIcon } from 'lucide-react-native';
+import { FOCUS_SHELL_COPY, HOUSE_LOWER_COPY, houseSetupValues, localDate } from '@app/core';
+import { ListTodoIcon, PlaneIcon, ScrollTextIcon } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { Row, RowIcon } from '@/components/row';
@@ -12,11 +12,10 @@ import { useTheme } from '@/theme';
 
 /**
  * House setup: a row to each of the house's setup pages, each showing what
- * it's set to now (the Johns and their effort, the money rules, who's away
- * next, the groups), who the admins are, and History, where anything
- * still in reach is undone.
- * Groups shows to admins, and to everyone once there is
- * one. Changing any of them changes the house for everyone, so it says so.
+ * it's set to now: the Johns and their effort (the groups are on that
+ * page too), the money rules (and the admins who can change them), and who's
+ * away next (with your own days). Changing any of them changes the house
+ * for everyone, so it says so. History is on the Wall.
  */
 export function SetupSection({ houseId, userId, view }: { houseId: string; userId: string; view: HouseView }) {
   const pending = <PendingMeta />;
@@ -62,32 +61,6 @@ export function SetupSection({ houseId, userId, view }: { houseId: string; userI
         href="/house/away"
         chevron
         testID="to-away"
-      />
-      {values.showGroups ? (
-        <Row
-          leading={<RowIcon icon={UsersIcon} />}
-          title={HOUSE_LOWER_COPY.groups}
-          meta={values.groups ?? pending}
-          href="/house/groups"
-          chevron
-          testID="to-groups"
-        />
-      ) : null}
-      <Row
-        leading={<RowIcon icon={ShieldCheckIcon} />}
-        title={ADMINS_COPY.title}
-        meta={ADMINS_COPY.meta(view.snapshot.members.filter((m) => m.role === 'admin').length, view.snapshot.members.length)}
-        href="/house/admins"
-        chevron
-        testID="to-admins"
-      />
-      <Row
-        leading={<RowIcon icon={HistoryIcon} />}
-        title={HISTORY_COPY.title}
-        meta={HISTORY_COPY.meta}
-        href="/house/history"
-        chevron
-        testID="to-history"
       />
     </Section>
   );

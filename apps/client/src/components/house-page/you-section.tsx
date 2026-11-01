@@ -95,7 +95,7 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
             leading={<RowIcon icon={SlidersHorizontalIcon} />}
             title={STEADY_COPY.prefs}
             meta={prefsLine(view.me.prefs)}
-            href="/house/prefs"
+            href="/house/away"
             chevron
             testID="to-prefs"
           />

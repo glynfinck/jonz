@@ -28,8 +28,7 @@ async function open() {
       'house/index': Host,
       'house/johns': () => <Text>John list page</Text>,
       'house/rules': () => <Text>Rules page</Text>,
-      'house/away': () => <Text>Time away page</Text>,
-      'house/groups': () => <Text>Groups page</Text>,
+      'house/away': () => <Text>Days and time away page</Text>,
     },
     '/house',
   );
@@ -63,16 +62,21 @@ it('shows what each page is set to now', async () => {
   // The bins every week (1) and the bathroom every other (4 / 2).
   await rowSays('to-johns', /Johns.*2 Johns, about 3 pts a week/);
   expect(screen.getByTestId('to-rules')).toHaveTextContent(/Rules.*£20 stake, £1 late, £3 missed/);
-  await rowSays('to-away', /Time away.*Sam, 29 Oct–1 Nov/);
-  // Priya is an admin: Groups shows before there are any.
-  expect(screen.getByTestId('to-groups')).toHaveTextContent(/Groups.*None/);
+  await rowSays('to-away', new RegExp(`${HOUSE_LOWER_COPY.away}.*Sam, 29 Oct–1 Nov`));
+});
+
+it('leaves Groups, the admins and History to the pages they are on now', async () => {
+  await open();
+  await rowSays('to-johns', /2 Johns,/);
+  expect(within(screen.getByTestId('setup-section')).getAllByRole('link')).toHaveLength(3);
+  for (const id of ['to-groups', 'to-admins', 'to-history']) expect(screen.queryByTestId(id)).toBeNull();
 });
 
 it('keeps each row as tall while it reads as once it has, so nothing below moves', async () => {
   (loadJohnList as jest.Mock).mockReturnValue(new Promise(() => undefined));
   (loadAway as jest.Mock).mockReturnValue(new Promise(() => undefined));
   await open();
-  for (const id of ['to-johns', 'to-rules', 'to-away', 'to-groups']) {
+  for (const id of ['to-johns', 'to-rules', 'to-away']) {
     expect(screen.getByTestId(id)).toHaveStyle({ minHeight: 64 });
   }
   expect(screen.getByTestId('to-johns')).toHaveTextContent(/^Johns$/);
@@ -86,30 +90,10 @@ it("says nobody's away when nobody is, and none yet before there are Johns", asy
   await rowSays('to-away', new RegExp(HOUSE_LOWER_COPY.nobodyAway));
 });
 
-it('keeps Groups from a housemate until the house has one', async () => {
-  const members = snapshot().members.map((m) => ({ ...m, role: 'member' as const }));
-  (loadHouse as jest.Mock).mockResolvedValue(snapshot({ members }));
-  await open();
-  await rowSays('to-johns', /2 Johns,/);
-  expect(screen.queryByTestId('to-groups')).toBeNull();
-});
-
-it('counts the groups once there are some, for everyone', async () => {
-  const members = snapshot().members.map((m) => ({ ...m, role: 'member' as const }));
-  (loadHouse as jest.Mock).mockResolvedValue(snapshot({ members }));
-  (loadJohnList as jest.Mock).mockResolvedValue({
-    johns: [BINS],
-    groups: [{ id: 'g1', name: 'Upstairs', memberIds: ['priya', 'sam'] }],
-  });
-  await open();
-  await rowSays('to-groups', /Groups.*1 group$/);
-});
-
 it.each([
   ['to-johns', '/house/johns', 'John list page'],
   ['to-rules', '/house/rules', 'Rules page'],
-  ['to-away', '/house/away', 'Time away page'],
-  ['to-groups', '/house/groups', 'Groups page'],
+  ['to-away', '/house/away', 'Days and time away page'],
 ])('%s leads to its page', async (testID, path, page) => {
   await open();
   await fireEvent.press(within(screen.getByTestId(testID)).getByRole('link'));

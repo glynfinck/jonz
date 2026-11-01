@@ -34,6 +34,8 @@ export type UndoReach = "own" | "admin" | null;
 export const HISTORY_COPY = {
   title: "History",
   meta: "Undo anything this month",
+  /** On a phone, the Wall's switch between what the house did and History: its name to a screen reader. */
+  show: "Show",
   empty: "Ticks, flags, swaps and changes land here, with Undo while it still reaches.",
   everyone: "Everyone",
   mine: "Mine",

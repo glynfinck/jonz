@@ -137,7 +137,9 @@ test("run a house from nothing on the phone", async ({ browser }) => {
   const benRules = benPage.getByTestId("rules-screen");
   await expect(benRules.getByTestId("rule").filter({ hasText: SETUP_COPY.stake })).toContainText(stake);
   await expect(benRules.getByTestId("rule").filter({ hasText: SETUP_COPY.disputes })).toContainText(SETUP_COPY.disputeWindow(0));
-  await expect(benRules.getByTestId("rules-admins")).toHaveText(SETUP_COPY.canChange("Ava", 1));
+  // Beside the rules, the admins who can change them.
+  await expect(benRules.getByTestId("admins-section").getByTestId("admin-row")).toHaveText(/Ava/);
+  await expect(benRules.getByTestId("admins-section").getByTestId("add-admin")).toHaveCount(0);
   await expect(benRules.getByTestId("edit-rules")).toHaveCount(0);
   await expect(benRules.getByTestId("house-stake")).toHaveCount(0);
   await benPage.goto("/house/johns");

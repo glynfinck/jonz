@@ -72,11 +72,11 @@ it('sits under a title bar with the way back to House', async () => {
   expect(bar.getByRole('button', { name: FOCUS_SHELL_COPY.backTo(SECTION_LABEL.house) })).toBeOnTheScreen();
 });
 
-it('reads the rules out in plain words, with who can change them under', async () => {
+it('reads the rules out in plain words, with the admins who can change them', async () => {
   await open('sam');
   const panel = within(screen.getByTestId('rules-panel'));
   expect(panel.getByText(SETUP_COPY.rules)).toBeOnTheScreen();
-  expect(screen.getByTestId('rules-admins')).toHaveTextContent(SETUP_COPY.canChange('Priya', 1));
+  expect(within(screen.getByTestId('admins-section')).getByTestId('admin-row')).toHaveTextContent(/Priya$/);
   const rules = panel.getAllByTestId('rule');
   [
     [STEADY_COPY.mode, 'Smart'],
@@ -105,8 +105,9 @@ it('names every admin in full, however many there are', async () => {
     }),
   );
   await open('sam');
-  // A sentence of its own, under the rules, so nothing in it is cut off.
-  expect(screen.getByTestId('rules-admins')).toHaveTextContent(SETUP_COPY.canChange('Priya, Tom and Megan', 3));
+  // A row each, so nothing is cut off.
+  const admins = within(screen.getByTestId('admins-section')).getAllByTestId('admin-row');
+  ['Priya', 'Tom Reilly', 'Megan Doyle'].forEach((name, i) => expect(admins[i]).toHaveTextContent(new RegExp(`${name}$`)));
 });
 
 it('never shows a housemate who is not an admin a form, locked or not', async () => {
@@ -117,9 +118,8 @@ it('never shows a housemate who is not an admin a form, locked or not', async ()
 });
 
 describe('an admin', () => {
-  it('is told they can change the rules, and opens the form with Edit', async () => {
+  it('opens the form with Edit', async () => {
     await open();
-    expect(screen.getByText(SETUP_COPY.youCanChange)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: SETUP_COPY.edit }));
     expect(screen.queryByTestId('rules-panel')).toBeNull();
     expect(within(screen.getByTestId('rules-money')).getByText(SETUP_COPY.money)).toBeOnTheScreen();
