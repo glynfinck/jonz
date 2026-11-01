@@ -1,7 +1,7 @@
-import { dateRange, DELETE_COPY, EMAIL_SIGN_IN_COPY, emailAuthProblem, HOUSE_COPY, HOUSE_LOWER_COPY, LOOK_LABEL, LOOKS, ME_COPY, MOVING_COPY, PASSWORD_SETTING_COPY, passwordProblem, prefsLine, STEADY_COPY } from '@app/core';
+import { dateRange, DELETE_COPY, EMAIL_SIGN_IN_COPY, emailAuthProblem, HOUSE_COPY, HOUSE_LOWER_COPY, LOOK_LABEL, LOOKS, ME_COPY, MOVING_COPY, PASSWORD_MIN, PASSWORD_SETTING_COPY, passwordProblem, prefsLine, STEADY_COPY } from '@app/core';
 import { BellIcon, KeyRoundIcon, LogOutIcon, SlidersHorizontalIcon, SunMoonIcon, Trash2Icon, TruckIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { signOut } from '@/api/auth';
 import { emailSignIn, setPassword } from '@/api/email-auth';
@@ -20,6 +20,7 @@ import { Row, RowIcon } from '@/components/row';
 import { Section } from '@/components/section';
 import { Segmented } from '@/components/segmented';
 import { Sheet } from '@/components/sheet';
+import { HiddenUsername, SignInForm } from '@/components/sign-in-form';
 import { Meta } from '@/components/text';
 import { useLook } from '@/hooks/look';
 import type { HouseView } from '@/hooks/use-house';
@@ -307,29 +308,37 @@ function PasswordSheet({
       testID="password-sheet"
     >
       <Meta>{hasPassword ? PASSWORD_SETTING_COPY.changeBody(email) : PASSWORD_SETTING_COPY.addBody(email)}</Meta>
-      <Field
-        label={EMAIL_SIGN_IN_COPY.newPassword}
-        hint={EMAIL_SIGN_IN_COPY.passwordHint}
-        value={value}
-        onChangeText={(text) => {
-          setValue(text);
-          setSaved(false);
-        }}
-        secureTextEntry
-        autoCapitalize="none"
-        autoComplete="new-password"
-        textContentType="newPassword"
-        returnKeyType="done"
-        onSubmitEditing={() => void save()}
-        testID="new-password"
-      />
-      {problem ? <Alert message={problem} /> : saved ? <Meta>{PASSWORD_SETTING_COPY.saved}</Meta> : null}
-      <Button
-        label={busy ? PASSWORD_SETTING_COPY.busy : PASSWORD_SETTING_COPY.save}
-        disabled={busy || value.length === 0}
-        onPress={() => void save()}
-        testID="save-password"
-      />
+      <SignInForm onSubmit={() => void save()} style={styles.leave}>
+        <HiddenUsername email={email} />
+        <Field
+          label={EMAIL_SIGN_IN_COPY.newPassword}
+          hint={EMAIL_SIGN_IN_COPY.passwordHint}
+          value={value}
+          onChangeText={(text) => {
+            setValue(text);
+            setSaved(false);
+          }}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          spellCheck={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          passwordRules={`minlength: ${PASSWORD_MIN};`}
+          nativeID="new-password"
+          returnKeyType="done"
+          // The web form sends itself on Enter.
+          onSubmitEditing={Platform.OS === 'web' ? undefined : () => void save()}
+          testID="new-password"
+        />
+        {problem ? <Alert message={problem} /> : saved ? <Meta>{PASSWORD_SETTING_COPY.saved}</Meta> : null}
+        <Button
+          label={busy ? PASSWORD_SETTING_COPY.busy : PASSWORD_SETTING_COPY.save}
+          disabled={busy || value.length === 0}
+          onPress={() => void save()}
+          testID="save-password"
+        />
+      </SignInForm>
     </Sheet>
   );
 }

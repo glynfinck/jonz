@@ -112,3 +112,18 @@ it('says email sign-in is not open yet, where production still has it off', asyn
   await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
   expect(screen.getByRole('alert')).toHaveTextContent(COPY.notOpen);
 });
+
+it('fills like any login: the keyboard sends it, and password managers know which box is which', async () => {
+  (signUpWithEmail as jest.Mock).mockResolvedValue('code-sent');
+  await render(<EmailSignIn />);
+  expect(screen.getByTestId('email-address')).toHaveProp('autoComplete', 'username');
+  expect(screen.getByTestId('email-password')).toHaveProp('autoComplete', 'current-password');
+  await fireEvent.press(screen.getByTestId('to-sign-up'));
+  const password = screen.getByTestId('email-password');
+  expect(password).toHaveProp('autoComplete', 'new-password');
+  expect(password).toHaveProp('passwordRules', 'minlength: 8;');
+  await type('email-address', 'sam@example.com');
+  await type('email-password', 'correct horse');
+  await fireEvent(screen.getByTestId('email-password'), 'submitEditing');
+  expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'correct horse');
+});

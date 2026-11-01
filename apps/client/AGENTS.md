@@ -134,7 +134,9 @@ permanent once a store has seen them.
   `LidBar`, `Avatar`, `CountBadge`, `Button`, `ButtonRow` (buttons side by
   side: equal, stacking when narrow), `IconButton` (every icon-only control),
   `TextButton`, `TextLink`,
-  `Field`, `Alert`, `Segmented`, `EmptyState`, `Reading` and `ReadFailed`
+  `Field`, `SignInForm` and `HiddenUsername` (sign-in and password boxes
+  as a real form on the web, for password managers), `Alert`, `Segmented`,
+  `EmptyState`, `Reading` and `ReadFailed`
   (a first read on its way, or "Try again"), toasts, and the brand pieces
   (`Wordmark`, `HazardTape`, `SignInPanel`). `john-row.tsx` is a John as a
   row wherever one is drawn (Today, Week's groups and its table): core's

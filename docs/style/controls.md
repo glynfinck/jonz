@@ -61,6 +61,12 @@
 - Forms sit in a column capped at `FORM_MAX` (520) on a laptop. (**New**)
 - A short select opens in place (`PickRow`); a radio or checkbox is a
   `ChoiceRow`. (AGENTS.md)
+- **Sign-in and password boxes work with password managers.** On the web
+  each step is a real form (`SignInForm`), Enter sends it, the email box is
+  `username` and a new password is `new-password` (with `passwordRules` on
+  iOS); where the step has no email box, `HiddenUsername` names the account.
+  No spellcheck or autocorrect on either. (Glyn, 1 Nov) *Backed by*
+  Chrome's and Apple's password autofill guides.
 
 ## One move, one place
 
