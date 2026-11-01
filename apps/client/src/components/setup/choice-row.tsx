@@ -69,16 +69,15 @@ export function ChoiceRow({
           {/* A setting has no leading slot; someone to pick, with a line about them, has their avatar. */}
           {leading ? <View style={styles.leading}>{leading}</View> : null}
           <View style={styles.words}>
-            <RowTitle numberOfLines={1}>{label}</RowTitle>
+            {/* A label wraps rather than being cut short (docs/style/words.md). */}
+            <RowTitle>{label}</RowTitle>
             <Meta numberOfLines={metaLines}>{meta}</Meta>
           </View>
         </>
       ) : (
         <>
           <View style={styles.leading}>{leading}</View>
-          <Body numberOfLines={1} style={styles.words}>
-            {label}
-          </Body>
+          <Body style={styles.words}>{label}</Body>
         </>
       )}
       {role === 'checkbox' ? (
