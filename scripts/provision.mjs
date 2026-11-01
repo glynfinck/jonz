@@ -158,7 +158,7 @@ say(`Provisioning ${C.app} → ${siteUrl(C)}${CHECK_ONLY ? " (check only)" : ""}
 
 step("Supabase project");
 const findProject = async () =>
-  (await supa("GET", "/v1/projects")).find((p) => p.name === C.supabase.name && p.organization_id === C.supabase.orgId);
+  (await supa("GET", "/v1/projects")).find((p) => (p.ref ?? p.id) === C.supabase.ref || (p.name === C.supabase.name && p.organization_id === C.supabase.orgId));
 let project = await findProject();
 if (!project && CHECK_ONLY) {
   fail(`no project called ${C.supabase.name} yet`);

@@ -120,7 +120,7 @@ say(`Staging for ${C.app} → ${stagingUrl(C)}${CHECK_ONLY ? " (check only)" : R
 // --- 1. The staging branch ----------------------------------------------------------------
 
 step("Supabase staging branch");
-const project = (await supa("GET", "/v1/projects")).find((p) => p.name === C.supabase.name && p.organization_id === C.supabase.orgId);
+const project = (await supa("GET", "/v1/projects")).find((p) => (p.ref ?? p.id) === C.supabase.ref || (p.name === C.supabase.name && p.organization_id === C.supabase.orgId));
 if (!project) stop(`No Supabase project called ${C.supabase.name}: production comes first (npm run provision).`);
 const parentRef = project.ref ?? project.id;
 const branch = findBranch(await supa("GET", `/v1/projects/${parentRef}/branches`), C.staging.branch);
