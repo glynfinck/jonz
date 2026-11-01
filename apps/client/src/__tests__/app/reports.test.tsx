@@ -1,0 +1,250 @@
+import { REPORT_COPY } from '@app/core';
+import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
+import { useWindowDimensions } from 'react-native';
+
+import { loadHouse } from '@/api/board';
+import { catchUp } from '@/api/house';
+import { ownerStatus } from '@/api/owner';
+import { forgetDetails, noteError, notePage } from '@/api/report-details';
+import {
+  inboxCount,
+  inboxPage,
+  myReport,
+  myReports,
+  openReport,
+  pickScreenshot,
+  replyToReport,
+  seeReport,
+  sendReport,
+  setReportState,
+  writeBack,
+  type InboxRow,
+  type Report,
+} from '@/api/reports';
+import ReportScreen from '@/app/(house)/house/reports/[id]';
+import ReportsScreen from '@/app/(house)/house/reports/index';
+import AdminLayout from '@/app/admin/_layout';
+import InboxReportPage from '@/app/admin/inbox/[id]';
+import InboxPage from '@/app/admin/inbox/index';
+import { HelpSection } from '@/components/house-page/help-section';
+import { snapshot } from '@/testing/house';
+import { renderPages } from '@/testing/pages';
+
+jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
+jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
+jest.mock('@/api/owner', () => ({ ownerStatus: jest.fn(), liveNotices: jest.fn().mockResolvedValue([]) }));
+jest.mock('@/api/reports', () => ({
+  ...jest.requireActual<typeof import('@/api/reports')>('@/api/reports'),
+  pickScreenshot: jest.fn(),
+  sendReport: jest.fn(),
+  myReports: jest.fn(),
+  myReport: jest.fn(),
+  seeReport: jest.fn(),
+  writeBack: jest.fn(),
+  inboxPage: jest.fn(),
+  inboxCount: jest.fn(),
+  openReport: jest.fn(),
+  replyToReport: jest.fn(),
+  setReportState: jest.fn(),
+}));
+jest.mock('@/api/supabase', () => ({ supabase: {} }));
+jest.mock('@/api/http', () => ({ apiPost: jest.fn() }));
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('@/hooks/use-membership', () => ({
+  useMembership: () => ({ session: { user: { id: 'ava' } }, house: { id: 'h1', name: 'The Annexe' }, refresh: jest.fn() }),
+}));
+
+const PHONE = { width: 390, height: 844, scale: 3, fontScale: 1 };
+const LAPTOP = { width: 1440, height: 900, scale: 1, fontScale: 1 };
+const MIN = 60_000;
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+
+const WORDS = 'The bins John vanished from Today right after I ticked the dishes.';
+
+const BINS: Report = {
+  id: 'r1',
+  kind: 'problem',
+  state: 'replied',
+  userId: 'ava',
+  name: 'Ava Brown',
+  email: 'ava@example.com',
+  house: 'The Annexe',
+  role: 'member',
+  sentAt: ago(30 * MIN),
+  words: WORDS,
+  details: { pages: 'Today, then House', app: 'Jonz on the web, Safari 18, iPhone' },
+  messages: [
+    { from: 'them', name: 'Ava Brown', at: ago(30 * MIN), text: WORDS, shots: ['https://storage.test/shot.jpg'] },
+    { from: 'jonz', name: 'Glyn', at: ago(5 * MIN), text: 'Thanks Ava, fixed in today’s update.' },
+  ],
+};
+
+const ROW: InboxRow = {
+  id: 'r1',
+  userId: 'ava',
+  name: 'Ava Brown',
+  email: 'ava@example.com',
+  house: 'The Annexe',
+  kind: 'problem',
+  state: 'new',
+  words: WORDS,
+  sentAt: ago(4 * MIN),
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  forgetDetails();
+  (useWindowDimensions as jest.Mock).mockReturnValue(PHONE);
+  jest.mocked(loadHouse).mockResolvedValue(snapshot());
+  jest.mocked(catchUp).mockResolvedValue(false);
+  jest.mocked(ownerStatus).mockResolvedValue({ owner: true, mfa: true });
+  jest.mocked(myReports).mockResolvedValue([
+    { id: 'r1', kind: 'problem', state: 'replied', words: WORDS, sentAt: BINS.sentAt, replies: 1, unread: true },
+    { id: 'r2', kind: 'idea', state: 'new', words: 'Let us pin a note to the Wall', sentAt: ago(2 * 86_400_000), replies: 0, unread: false },
+  ]);
+  jest.mocked(myReport).mockResolvedValue(BINS);
+  jest.mocked(seeReport).mockResolvedValue(undefined);
+  jest.mocked(writeBack).mockResolvedValue(undefined);
+  jest.mocked(sendReport).mockResolvedValue('r9');
+  jest.mocked(pickScreenshot).mockResolvedValue('file:///shot-1.jpg');
+  jest.mocked(inboxPage).mockResolvedValue({ items: [ROW, { ...ROW, id: 'r2', name: 'Sam Okafor', kind: 'question', state: 'open', words: 'I think I paid twice?' }], more: false });
+  jest.mocked(inboxCount).mockResolvedValue(2);
+  jest.mocked(openReport).mockResolvedValue({ ...BINS, state: 'open' });
+  jest.mocked(replyToReport).mockResolvedValue(undefined);
+  jest.mocked(setReportState).mockResolvedValue(undefined);
+});
+
+describe('Help on House', () => {
+  const ROUTES = { 'house/index': () => <HelpSection house="The Annexe" />, 'house/reports/[id]': ReportScreen };
+
+  it('has Report a problem, Send an idea, and Your reports with the reply to read', async () => {
+    await renderPages(ROUTES, '/house');
+    const help = await screen.findByTestId('help-section');
+    expect(within(help).getByText(REPORT_COPY.report)).toBeVisible();
+    expect(within(help).getByText(REPORT_COPY.idea)).toBeVisible();
+    await waitFor(() => expect(screen.getByTestId('to-reports')).toHaveTextContent(/Your reports.*A reply to read/));
+    expect(screen.getByText(REPORT_COPY.orEmail)).toBeVisible();
+  });
+
+  it('sends a report with a screenshot and the details it shows, then opens it under Your reports', async () => {
+    notePage('/today');
+    notePage('/house');
+    noteError('Couldn’t read the week.');
+    await renderPages(ROUTES, '/house');
+    await fireEvent.press(await screen.findByTestId('to-report'));
+    const form = await screen.findByTestId('report-form');
+    expect(within(form).getByTestId('report-send-details')).toHaveTextContent(/Today, then House.*The Annexe.*Couldn’t read the week/);
+    expect(screen.getByTestId('report-send')).toBeDisabled();
+
+    await fireEvent.changeText(within(form).getByLabelText(REPORT_COPY.words.problem), WORDS);
+    await fireEvent.press(screen.getByTestId('report-add-shot'));
+    expect(await screen.findByTestId('report-shot-0')).toBeVisible();
+    await fireEvent.press(screen.getByTestId('report-send'));
+
+    await waitFor(() =>
+      expect(sendReport).toHaveBeenCalledWith({
+        kind: 'problem',
+        words: WORDS,
+        details: expect.objectContaining({ pages: 'Today, then House', house: 'The Annexe', error: 'Couldn’t read the week.' }),
+        shots: ['file:///shot-1.jpg'],
+      }),
+    );
+    expect(await screen.findByTestId('your-report')).toBeVisible();
+  });
+
+  it('leaves the details out when the box is unticked, and an idea is an idea', async () => {
+    await renderPages(ROUTES, '/house');
+    await fireEvent.press(await screen.findByTestId('to-idea'));
+    const form = await screen.findByTestId('report-form');
+    await fireEvent.press(within(form).getByRole('checkbox', { name: new RegExp(REPORT_COPY.details) }));
+    await fireEvent.changeText(within(form).getByLabelText(REPORT_COPY.words.idea), 'Dark mode for the Wall');
+    await fireEvent.press(screen.getByTestId('report-send'));
+    await waitFor(() => expect(sendReport).toHaveBeenCalledWith({ kind: 'idea', words: 'Dark mode for the Wall', details: null, shots: [] }));
+  });
+
+  it('says why it could not send, and keeps what was written', async () => {
+    jest.mocked(sendReport).mockRejectedValue(new Error('That’s a lot for one day. Try again tomorrow, or email support@jonz.app.'));
+    await renderPages(ROUTES, '/house');
+    await fireEvent.press(await screen.findByTestId('to-report'));
+    await fireEvent.changeText(await screen.findByLabelText(REPORT_COPY.words.problem), WORDS);
+    await fireEvent.press(screen.getByTestId('report-send'));
+    expect(await screen.findByTestId('report-problem')).toHaveTextContent(/a lot for one day/);
+    expect(screen.getByLabelText(REPORT_COPY.words.problem)).toHaveDisplayValue(WORDS);
+  });
+});
+
+describe('Your reports', () => {
+  const ROUTES = { 'house/reports/index': ReportsScreen, 'house/reports/[id]': ReportScreen };
+
+  it('lists what you sent, newest first, with the reply to read and where each has got to', async () => {
+    await renderPages(ROUTES, '/house/reports');
+    const unread = await screen.findByTestId('report-r1');
+    expect(unread).toHaveTextContent(/The bins John vanished.*A reply to read/);
+    expect(screen.getByTestId('report-r2')).toHaveTextContent(/Let us pin a note.*Idea, sent.*Sent/);
+  });
+
+  it('opens one with the conversation, marks the reply read, and writes back', async () => {
+    await renderPages(ROUTES, '/house/reports/r1');
+    const thread = await screen.findByTestId('report-thread');
+    expect(thread).toHaveTextContent(/You,.*The bins John vanished/);
+    expect(thread).toHaveTextContent(/Glyn at Jonz,.*Thanks Ava, fixed/);
+    expect(screen.getByTestId('your-report-state')).toHaveTextContent(REPORT_COPY.state.replied);
+    await waitFor(() => expect(seeReport).toHaveBeenCalledWith('r1'));
+
+    await fireEvent.changeText(screen.getByTestId('write-back-input'), 'Thank you!');
+    await fireEvent.press(screen.getByTestId('write-back-send'));
+    await waitFor(() => expect(writeBack).toHaveBeenCalledWith('r1', 'Thank you!'));
+    await waitFor(() => expect(screen.getByTestId('write-back-input')).toHaveDisplayValue(''));
+  });
+
+  it('says so when a report is not yours or not there', async () => {
+    jest.mocked(myReport).mockResolvedValue(null);
+    await renderPages(ROUTES, '/house/reports/r404');
+    expect(await screen.findByText(REPORT_COPY.missing)).toBeVisible();
+    expect(seeReport).not.toHaveBeenCalled();
+  });
+});
+
+describe('the owner’s Inbox', () => {
+  const ROUTES = { 'admin/_layout': AdminLayout, 'admin/inbox/index': InboxPage, 'admin/inbox/[id]': InboxReportPage };
+
+  it('is a busy list that opens on what is waiting, newest first, a page of its own per report on a phone', async () => {
+    await renderPages(ROUTES, '/admin/inbox');
+    const row = await screen.findByTestId('inbox-r1');
+    expect(row).toHaveTextContent(/Ava Brown.*The bins John vanished.*Problem, The Annexe, 4 min/);
+    expect(inboxPage).toHaveBeenLastCalledWith(null, { q: '', state: 'waiting', kind: null, after: null, before: null });
+    await fireEvent.press(row);
+    expect(await screen.findByTestId('admin-inbox-report')).toBeVisible();
+    await waitFor(() => expect(openReport).toHaveBeenCalledWith('r1'));
+  });
+
+  it('replies to the sender, and marks it fixed, from the report', async () => {
+    await renderPages(ROUTES, '/admin/inbox/r1');
+    const panel = await screen.findByTestId('report-panel');
+    expect(panel).toHaveTextContent(/Ava Brown.*The Annexe, housemate, ava@example.com/);
+    expect(panel).toHaveTextContent(/Pages.*Today, then House/);
+    await fireEvent.changeText(screen.getByTestId('report-reply-input'), 'Fixed now, thank you.');
+    await fireEvent.press(screen.getByTestId('report-reply-send'));
+    await waitFor(() => expect(replyToReport).toHaveBeenCalledWith('r1', 'Fixed now, thank you.'));
+    await fireEvent.press(screen.getByTestId('report-fixed'));
+    await waitFor(() => expect(setReportState).toHaveBeenCalledWith('r1', 'fixed'));
+  });
+
+  it('has no reply box once its sender has deleted their account, and opens a fixed one again', async () => {
+    jest.mocked(openReport).mockResolvedValue({ ...BINS, state: 'fixed', userId: null, name: 'Someone who left', email: null });
+    await renderPages(ROUTES, '/admin/inbox/r1');
+    await screen.findByTestId('report-panel');
+    expect(screen.queryByTestId('report-reply')).toBeNull();
+    await fireEvent.press(screen.getByTestId('report-reopen'));
+    await waitFor(() => expect(setReportState).toHaveBeenCalledWith('r1', 'open'));
+  });
+
+  it('is a table on a laptop, with the chosen report beside it', async () => {
+    (useWindowDimensions as jest.Mock).mockReturnValue(LAPTOP);
+    await renderPages(ROUTES, '/admin/inbox');
+    await screen.findByTestId('inbox-r1');
+    await waitFor(() => expect(openReport).toHaveBeenCalledWith('r1'));
+    await fireEvent.press(screen.getByTestId('inbox-r2'));
+    await waitFor(() => expect(openReport).toHaveBeenCalledWith('r2'));
+  });
+});

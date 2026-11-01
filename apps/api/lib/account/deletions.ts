@@ -9,6 +9,8 @@ export type SendEmail = typeof sendEmail;
 
 /** The bucket profile photos are kept in, each account's under its own id. */
 const PHOTOS = "avatars";
+/** Screenshots sent with reports (20261112090000_reports.sql): the database clears their paths, this the files. */
+const SHOTS = "report-shots";
 
 /** What one turn of the clock did with accounts being deleted. */
 export interface DeletionRun {
@@ -135,6 +137,7 @@ async function finishDue(db: AdminClient, stripe: PassStripe | null, now: Date, 
       const { error: finished } = await db.rpc("finish_account_deletion", { p_user: row.user_id });
       if (finished) throw new Error(finished.message);
       await removePhotos(db, row.user_id);
+      await removeFolder(db, SHOTS, row.user_id);
       // Soft: Supabase scrambles the email and unlinks the sign-in, and the
       // profile the house's history points at stays.
       const { error: gone } = await db.auth.admin.deleteUser(row.user_id, true);
@@ -228,13 +231,21 @@ async function stopCarriedPass(db: AdminClient, stripe: PassStripe, userId: stri
 
 /** Every file in the account's photo folder. */
 async function removePhotos(db: AdminClient, userId: string) {
-  const bucket = db.storage.from(PHOTOS);
-  const { data: files, error } = await bucket.list(userId, { limit: 100 });
-  if (error) throw new Error(`photos: ${error.message}`);
-  const paths = (files ?? []).map((file) => `${userId}/${file.name}`);
-  if (paths.length === 0) return;
-  const { error: removed } = await bucket.remove(paths);
-  if (removed) throw new Error(`photos: ${removed.message}`);
+  await removeFolder(db, PHOTOS, userId);
+}
+
+/** Every file in the account's folder of a bucket, a hundred at a time. */
+async function removeFolder(db: AdminClient, name: string, userId: string) {
+  const bucket = db.storage.from(name);
+  for (;;) {
+    const { data: files, error } = await bucket.list(userId, { limit: 100 });
+    if (error) throw new Error(`${name}: ${error.message}`);
+    const paths = (files ?? []).map((file) => `${userId}/${file.name}`);
+    if (paths.length === 0) return;
+    const { error: removed } = await bucket.remove(paths);
+    if (removed) throw new Error(`${name}: ${removed.message}`);
+    if (paths.length < 100) return;
+  }
 }
 
 function message(e: unknown): string {

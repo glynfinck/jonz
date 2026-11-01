@@ -1,4 +1,14 @@
-import { ADMIN_COPY, AUDIT_LIST_COPY, DELETION_LIST_COPY, LIST_COPY, NOTICE_LIST_COPY, NOT_FOUND_COPY, type AuditEntry, type Notice } from '@app/core';
+import {
+  ADMIN_COPY,
+  AUDIT_LIST_COPY,
+  DELETION_LIST_COPY,
+  LIST_COPY,
+  NOTICE_LIST_COPY,
+  NOT_FOUND_COPY,
+  REPORT_COPY,
+  type AuditEntry,
+  type Notice,
+} from '@app/core';
 import * as Clipboard from 'expo-clipboard';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 import { Platform, useWindowDimensions, type ViewStyle } from 'react-native';
@@ -25,6 +35,7 @@ import AdminLayout from '@/app/admin/_layout';
 import AuditEntryPage from '@/app/admin/audit/[id]';
 import AuditPage from '@/app/admin/audit/index';
 import DeletionsPage from '@/app/admin/deletions';
+import InboxPage from '@/app/admin/inbox/index';
 import AdminIndex from '@/app/admin/index';
 import NoticesPage from '@/app/admin/notices';
 import { authStorage } from '@/api/storage';
@@ -52,6 +63,11 @@ jest.mock('@/api/owner', () => ({
   deleteNow: jest.fn(),
   stopDeletion: jest.fn(),
   deleteByEmail: jest.fn(),
+}));
+jest.mock('@/api/reports', () => ({
+  ...jest.requireActual<typeof import('@/api/reports')>('@/api/reports'),
+  inboxPage: jest.fn().mockResolvedValue({ items: [], more: false }),
+  inboxCount: jest.fn().mockResolvedValue(0),
 }));
 jest.mock('@/api/supabase', () => ({ supabase: {} }));
 jest.mock('@/api/http', () => ({ apiPost: jest.fn() }));
@@ -126,6 +142,7 @@ const entry = (id: number, over: Partial<AuditEntry> = {}): AuditEntry => ({
 const ROUTES = {
   'admin/_layout': AdminLayout,
   'admin/index': AdminIndex,
+  'admin/inbox/index': InboxPage,
   'admin/notices': NoticesPage,
   'admin/deletions': DeletionsPage,
   'admin/audit/index': AuditPage,
@@ -225,9 +242,10 @@ describe('who gets in', () => {
     expect(screen.getByTestId('admin-key')).toHaveTextContent('JBSW Y3DP EHPK 3PXP');
   });
 
-  it('opens /admin on the notices', async () => {
+  it('opens /admin on the Inbox', async () => {
     await renderPages(ROUTES, '/admin');
-    expect(await screen.findByTestId('admin-notices')).toBeVisible();
+    expect(await screen.findByTestId('admin-inbox')).toBeVisible();
+    expect(await screen.findByText(REPORT_COPY.empty)).toBeVisible();
   });
 });
 
