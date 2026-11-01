@@ -23,6 +23,7 @@ export function HousePage({
   onRefresh,
   back = '/house',
   backLabel = SECTION_LABEL.house,
+  fills = false,
   children,
 }: {
   title: string;
@@ -35,10 +36,18 @@ export function HousePage({
   back?: Href;
   /** Where `back` goes, in words: House unless it says otherwise. */
   backLabel?: string;
+  /** On a laptop the page fills the room beside House's list, its sections in columns (Pair, Flow). */
+  fills?: boolean;
   children: () => ReactNode;
 }) {
   return (
-    <Screen bar={<TitleBar title={title} back={back} backLabel={backLabel} />} refreshing={refreshing} onRefresh={onRefresh} testID={testID}>
+    <Screen
+      bar={<TitleBar title={title} back={back} backLabel={backLabel} />}
+      fills={fills}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      testID={testID}
+    >
       <PageTitle page={title} />
       {ready ? children() : failed ? <ReadFailed onRetry={onRetry} /> : <Reading />}
     </Screen>

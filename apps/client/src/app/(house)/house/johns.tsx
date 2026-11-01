@@ -37,6 +37,7 @@ function JohnListFor({ houseId, userId }: { houseId: string; userId: string }) {
     <HousePage
       title={PAGE_TITLE.johnList}
       testID="johns-screen"
+      fills
       ready={view !== null && list.data !== undefined}
       failed={query.isError || list.isError}
       onRetry={retry}

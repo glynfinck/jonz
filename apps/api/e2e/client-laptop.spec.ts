@@ -5,8 +5,9 @@ import { admin, CLIENT_URL, cleanUp, dealtHouseInClient } from "./auth";
 
 // Today, Week and House on a laptop: Today and Week spread into two columns
 // beside the rail, the second a panel docked to the window's right edge,
-// House lists its pages beside them with a panel for a John, and a window
-// too narrow for them keeps the phone's way.
+// House lists its pages beside them with a panel for a John, its pages fill
+// the room beside the list in columns, and a window too narrow for them
+// keeps the phone's way.
 // SHOTS=<folder> also saves each page, in daylight and after dark.
 test.use({ baseURL: CLIENT_URL });
 
@@ -31,6 +32,17 @@ async function topOf(box: Locator): Promise<number> {
 /** A section's group of rows: the last of its two children, under its header. */
 function groupOf(section: Locator): Locator {
   return section.locator(":scope > div").last();
+}
+
+/** Where a box's right edge is. */
+function rightOf(box: { x: number; width: number } | null): number {
+  return (box?.x ?? 0) + (box?.width ?? 0);
+}
+
+/** A House page that fills the room runs its last column out to the window's gutter, short of FILL_MAX. */
+async function fillsTheRoom(page: Page, lastColumn: Locator) {
+  const window = page.viewportSize()?.width ?? 0;
+  expect(Math.abs(rightOf(await lastColumn.boundingBox()) - (window - 16))).toBeLessThan(2);
 }
 
 /**
@@ -131,6 +143,15 @@ test("each place spreads out on a laptop, and a narrow window keeps the phone's 
   const nav = page.getByTestId("house-nav");
   await nav.getByRole("link", { name: HOUSE_LOWER_COPY.johns }).click();
   await expect(page.getByRole("heading", { name: PAGE_TITLE.johnList })).toBeVisible();
+  // The page fills the room beside the list: its kinds in two columns sharing a top edge, out to the
+  // window's gutter, with Add a John at the top right over them.
+  const kinds = page.getByTestId("john-kinds-column");
+  await expect(kinds).toHaveCount(2);
+  expect(await topOf(kinds.nth(0))).toBeCloseTo(await topOf(kinds.nth(1)), 0);
+  await fillsTheRoom(page, kinds.nth(1));
+  const add = await page.getByTestId("john-list-bar").getByTestId("add-john").boundingBox();
+  expect(Math.abs(rightOf(add) - rightOf(await kinds.nth(1).boundingBox()))).toBeLessThan(2);
+  await shoot(page, "johns-columns");
   await page.getByRole("button", { name: /^Edit Bathroom clean, / }).click();
   const panel = page.getByTestId("john-panel");
   await expect(panel.getByRole("heading", { name: JOHN_LIST_COPY.edit("Bathroom clean") })).toBeVisible();
@@ -139,7 +160,23 @@ test("each place spreads out on a laptop, and a narrow window keeps the phone's 
   await expect(panel.getByRole("heading", { name: JOHN_LIST_COPY.edit("Big shop") })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(panel).toHaveCount(0);
-  await nav.getByRole("link", { name: HOUSE_LOWER_COPY.overview }).click();
+
+  // The Pass: what it gives everyone beside the plans.
+  await nav.getByTestId("nav-pass").click();
+  await expect(page.getByTestId("pass-pair-end").getByTestId("pass-plans")).toBeVisible();
+  expect(await topOf(page.getByTestId("pass-pair-start"))).toBeCloseTo(await topOf(page.getByTestId("pass-pair-end")), 0);
+  await shoot(page, "pass");
+
+  // A housemate's page: their record, share, streak, money and time away in two columns, an admin's actions among them.
+  await page.goto(`/house/people/${housemateIds[0]}`);
+  const person = page.getByTestId("person-screen");
+  await expect(person.getByTestId("person-sections-column")).toHaveCount(2);
+  await expect(person.getByTestId("person-sections-column").first().getByTestId("person-record")).toBeVisible();
+  await expect(person.getByTestId("person-admin")).toBeVisible();
+  await fillsTheRoom(page, person.getByTestId("person-sections-column").last());
+  await shoot(page, "person");
+
+  await page.getByTestId("house-nav").getByRole("link", { name: HOUSE_LOWER_COPY.overview }).click();
   await expect(house.getByTestId("month-card")).toBeVisible();
 
   // A screen wide enough for the list beside the chat with Jonz still has one panel down the right: a John closes the chat.

@@ -55,6 +55,7 @@ function PersonFor({ houseId, userId, personId }: { houseId: string; userId: str
       }
       refreshing={refreshing}
       onRefresh={pull}
+      fills
       testID="person-screen"
     >
       <PageTitle page={title} />
@@ -67,10 +68,19 @@ function PersonFor({ houseId, userId, personId }: { houseId: string; userId: str
       ) : !person ? (
         <EmptyState icon={UserRoundXIcon} title={FOCUS_SHELL_COPY.gone} />
       ) : (
-        <>
-          <PersonSections userId={userId} person={person} view={view} table={table} stake={stake} away={away} />
-          {view.me?.role === 'admin' && person.userId !== userId ? <PersonAdmin houseId={houseId} userId={userId} person={person} /> : null}
-        </>
+        <PersonSections
+          userId={userId}
+          person={person}
+          view={view}
+          table={table}
+          stake={stake}
+          away={away}
+          admin={
+            view.me?.role === 'admin' && person.userId !== userId ? (
+              <PersonAdmin houseId={houseId} userId={userId} person={person} />
+            ) : undefined
+          }
+        />
       )}
     </Screen>
   );
