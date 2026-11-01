@@ -8,6 +8,7 @@ import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
 import { GroupItem } from '@/components/group';
 import { HousePage } from '@/components/house/house-page';
+import { Pair, useSideBySide } from '@/components/page-columns';
 import { Section } from '@/components/section';
 import { AwayDates, type DateRange } from '@/components/setup/away-dates';
 import { Body, Meta } from '@/components/text';
@@ -35,10 +36,14 @@ function MovingFor({ houseId, userId }: { houseId: string; userId: string }) {
   const { refreshing, pull } = usePull(houseId, () => query.refetch());
   const me = view?.snapshot.members.find((m) => m.userId === userId);
   const today = view ? localDate(view.now, view.snapshot.rules.timezone) : null;
+  // Read here, not in the callback below: the React Compiler can hoist a field read out of it, before it's ready.
+  const saved = me?.movingOutOn ?? null;
+  const weekStarts = view?.snapshot.rules.weekStarts;
   return (
     <HousePage
       title={PAGE_TITLE.moving}
       testID="moving-screen"
+      fills
       ready={me !== undefined && today !== null}
       failed={query.isError}
       onRetry={() => void query.refetch()}
@@ -46,14 +51,7 @@ function MovingFor({ houseId, userId }: { houseId: string; userId: string }) {
       onRefresh={pull}
     >
       {/* Whole values only: the React Compiler can hoist a field read out of this callback, before it's ready. */}
-      {() => (
-        <MovingForm
-          houseId={houseId}
-          saved={me!.movingOutOn ?? null}
-          today={today!}
-          weekStarts={view!.snapshot.rules.weekStarts}
-        />
-      )}
+      {() => <MovingForm houseId={houseId} saved={saved} today={today!} weekStarts={weekStarts!} />}
     </HousePage>
   );
 }
@@ -75,53 +73,68 @@ function MovingForm({
   const range: DateRange = { from: picked, to: picked };
   const changed = picked !== saved;
 
+  // On a laptop what moving out does sits beside the day you pick; on a phone, the note under the calendar.
+  const beside = useSideBySide();
+  const note = <Meta style={styles.note}>{MOVING_COPY.afterward}</Meta>;
   return (
-    <View style={styles.page}>
-      <Body style={styles.intro}>{MOVING_COPY.intro}</Body>
-      {saved ? (
-        <Section label={MOVING_COPY.title}>
-          <GroupItem>
-            <Body testID="moving-saved">{MOVING_COPY.saved(dateRange(saved, saved))}</Body>
-            <TextButton
-              label={MOVING_COPY.staying}
-              icon={CalendarXIcon}
-              align="start"
-              disabled={move.pending}
-              onPress={() => {
-                setPicked(null);
-                void move.run(() => setMovingOut(null));
-              }}
-              testID="moving-clear"
-            />
-          </GroupItem>
-        </Section>
-      ) : null}
-      <Section label={saved ? MOVING_COPY.change : MOVING_COPY.pick}>
-        <GroupItem>
-          <AwayDates
-            today={today}
-            weekStarts={weekStarts}
-            value={range}
-            onChange={(next) => setPicked(next.to ?? next.from)}
-          />
-          {move.problem ? <Alert message={move.problem} /> : null}
-          <View style={styles.start}>
-            <Button
-              label={picked ? MOVING_COPY.save(dateRange(picked, picked)) : MOVING_COPY.pick}
-              disabled={!picked || !changed || move.pending}
-              onPress={() => void move.run(() => setMovingOut(picked))}
-              testID="moving-save"
-            />
-          </View>
-        </GroupItem>
-      </Section>
-      <Meta style={styles.note}>{MOVING_COPY.afterward}</Meta>
-    </View>
+    <Pair
+      testID="moving-pair"
+      ratio={0.8}
+      start={
+        <View style={beside ? styles.words : styles.page}>
+          <Body style={styles.intro}>{MOVING_COPY.intro}</Body>
+          {beside ? note : null}
+        </View>
+      }
+      end={
+        <View style={styles.page}>
+          {saved ? (
+            <Section label={MOVING_COPY.title}>
+              <GroupItem>
+                <Body testID="moving-saved">{MOVING_COPY.saved(dateRange(saved, saved))}</Body>
+                <TextButton
+                  label={MOVING_COPY.staying}
+                  icon={CalendarXIcon}
+                  align="start"
+                  disabled={move.pending}
+                  onPress={() => {
+                    setPicked(null);
+                    void move.run(() => setMovingOut(null));
+                  }}
+                  testID="moving-clear"
+                />
+              </GroupItem>
+            </Section>
+          ) : null}
+          <Section label={saved ? MOVING_COPY.change : MOVING_COPY.pick}>
+            <GroupItem>
+              <AwayDates
+                today={today}
+                weekStarts={weekStarts}
+                value={range}
+                onChange={(next) => setPicked(next.to ?? next.from)}
+              />
+              {move.problem ? <Alert message={move.problem} /> : null}
+              <View style={styles.start}>
+                <Button
+                  label={picked ? MOVING_COPY.save(dateRange(picked, picked)) : MOVING_COPY.pick}
+                  disabled={!picked || !changed || move.pending}
+                  onPress={() => void move.run(() => setMovingOut(picked))}
+                  testID="moving-save"
+                />
+              </View>
+            </GroupItem>
+          </Section>
+          {beside ? null : note}
+        </View>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
   page: { gap: SECTION_GAP },
+  words: { gap: SPACE.md },
   intro: { paddingHorizontal: INSET },
   start: { alignItems: 'flex-start', marginTop: SPACE.sm },
   // A line under a group, on the leading edge.

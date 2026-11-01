@@ -126,7 +126,10 @@ permanent once a store has seen them.
   (`LookProvider` in the root layout, `useLook()`), saved in storage under
   `theme`, the key the web's next-themes uses.
 - `src/components/`: the pieces every house screen is built from, Focus's
-  kit: `Screen` (a house screen's page), `TitleBar` (with `MoreButton` for
+  kit: `Screen` (a house screen's page; `spreads` for Today, Week and
+  House in `Columns`, `fills` for House's other pages, whose sections sit
+  side by side on a laptop in `Pair` and `Flow` from `page-columns.tsx`),
+  `TitleBar` (with `MoreButton` for
   "•••"), `PageTitle` (the browser tab's title on the web from core's
   `pageTitle`, nothing on a phone), `Section`, `Group`, `Row` (the one row,
   everywhere), `Fold`, `Card` (at most one stand-alone card a screen),

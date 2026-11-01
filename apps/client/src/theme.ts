@@ -100,6 +100,14 @@ export const HOUSE_NAV = 240;
 export const WORKSPACE_MIN = 960;
 /** A panel down the right of House's pages on a laptop (a John's details), as wide as the chat with Jonz. */
 export const PANEL = 400;
+/**
+ * The widest a House page's content runs on a laptop when it fills the room
+ * beside House's list (`Screen` with `fills`): its sections side by side in
+ * columns (`Pair`, `Flow`). Past it the room is left at the right.
+ */
+export const FILL_MAX = 1600;
+/** The narrowest column a filled page's sections go into: two on a 1440 laptop, three on a 1920 screen. */
+export const COLUMN_MIN = 360;
 /** Between one section and the next. */
 export const SECTION_GAP = 32;
 /** From a section's label to its group. */

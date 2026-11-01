@@ -1,7 +1,9 @@
 import type { HistoryKind, HistoryMonth } from '@app/core';
+import type { ReactNode } from 'react';
 import { BanknoteIcon, ClockIcon, CoinsIcon, RotateCcwIcon, TriangleAlertIcon, Undo2Icon, XIcon, type LucideIcon } from 'lucide-react-native';
 
 import { Money } from '@/components/house-page/money';
+import { Flow, type FlowItem } from '@/components/page-columns';
 import { Row } from '@/components/row';
 import { Section } from '@/components/section';
 import { useTheme } from '@/theme';
@@ -18,18 +20,11 @@ const KIND_ICON: Record<HistoryKind, LucideIcon> = {
   other: CoinsIcon,
 };
 
-/**
- * The ledger by month, newest first: a section for each month, a row for
- * each entry. A forfeit names its John, with the late or missed mark and
- * its amount in hazard; shares and refunds are said in words, signed in
- * ink. A payment says who paid whom, its amount in ink without a sign
- * (core's HistoryLine says why); one between two others has no amount:
- * it's theirs.
- */
-export function StakeHistory({ months }: { months: readonly HistoryMonth[] }) {
+/** A month of the ledger: a section with a row for each entry. */
+function LedgerMonth({ month }: { month: HistoryMonth }) {
   const { colors } = useTheme();
-  return months.map((month) => (
-    <Section key={month.month} label={month.label} testID="ledger-month">
+  return (
+    <Section label={month.label} testID="ledger-month">
       {month.lines.map((line) => {
         const Icon = KIND_ICON[line.kind];
         const hazard = line.kind === 'late' || line.kind === 'missed' || line.kind === 'forfeit';
@@ -45,5 +40,33 @@ export function StakeHistory({ months }: { months: readonly HistoryMonth[] }) {
         );
       })}
     </Section>
-  ));
+  );
+}
+
+/**
+ * The ledger by month, newest first: a section for each month, a row for
+ * each entry. A forfeit names its John, with the late or missed mark and
+ * its amount in hazard; shares and refunds are said in words, signed in
+ * ink. A payment says who paid whom, its amount in ink without a sign
+ * (core's HistoryLine says why); one between two others has no amount:
+ * it's theirs. `after` (an admin's let-offs, `afterRows` tall) follows the
+ * months. On a laptop the months sit in columns (`Flow`), newest at the
+ * top left; on a phone, one under another.
+ */
+export function StakeHistory({
+  months,
+  after,
+  afterRows = 0,
+}: {
+  months: readonly HistoryMonth[];
+  after?: ReactNode;
+  afterRows?: number;
+}) {
+  const items: FlowItem[] = months.map((month) => ({
+    key: month.month,
+    weight: month.lines.length + 1,
+    node: <LedgerMonth month={month} />,
+  }));
+  if (after) items.push({ key: 'after', weight: afterRows, node: after });
+  return <Flow items={items} testID="ledger-months" />;
 }

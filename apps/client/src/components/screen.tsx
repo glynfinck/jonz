@@ -10,10 +10,12 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { ASIDE, COLUMNS_MIN, CONTENT_MAX, GUTTER, MAIN_MAX, RAIL, SECTION_GAP, useTheme, WIDE } from '@/theme';
+import { useHouseWorkspace } from '@/components/house/workspace';
+import { ASIDE, COLUMNS_MIN, CONTENT_MAX, FILL_MAX, GUTTER, HOUSE_NAV, MAIN_MAX, RAIL, SECTION_GAP, useTheme, WIDE } from '@/theme';
 
 const ContentWidth = createContext(CONTENT_MAX);
 const TwoColumns = createContext(false);
+const Filled = createContext<number | null>(null);
 
 /** What scrolling the page does, handed to the main column when two columns each scroll on their own. */
 interface PageScroll {
@@ -43,6 +45,15 @@ export function useColumns(): boolean {
 }
 
 /**
+ * The content's width when the page fills the room on a laptop (a Screen
+ * that `fills`, from WIDE), for `Pair` and `Flow` to share out in columns;
+ * null anywhere else, where a page is one column.
+ */
+export function useFilled(): number | null {
+  return useContext(Filled);
+}
+
+/**
  * A house screen's page: its title bar (`bar`, a TitleBar) fixed at the top,
  * then the content, which scrolls and pulls to refresh. The content keeps
  * to CONTENT_MAX, sits GUTTER in from the edges, and puts SECTION_GAP
@@ -55,12 +66,17 @@ export function useColumns(): boolean {
  * (the chat with Jonz) takes the room. In two columns each scrolls on its
  * own (Columns), so the page itself holds still under the title bar. The
  * title bar keeps clear of the notch; the tabs keep clear of the home bar.
+ *
+ * A page that `fills` (House's pages beside its list) runs its content
+ * across the room from WIDE, up to FILL_MAX, and lays its sections out side
+ * by side with `Pair` and `Flow`; on a phone it's one column, as any page.
  */
 export function Screen({
   children,
   bar,
   maxWidth = CONTENT_MAX,
   spreads = false,
+  fills = false,
   refreshing,
   onRefresh,
   onNearEnd,
@@ -70,6 +86,8 @@ export function Screen({
   bar?: ReactNode;
   maxWidth?: number;
   spreads?: boolean;
+  /** From WIDE, the content fills the room (up to FILL_MAX) for its sections to sit in columns. */
+  fills?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
   /** Scrolled to within a screen of the end: a timeline reads its next page. */
@@ -78,33 +96,37 @@ export function Screen({
 }) {
   const { colors } = useTheme();
   const windowWidth = useWindowDimensions().width;
-  // Until the page has measured itself, the window less the rail.
+  // Until the page has measured itself, the window less the rail (and House's list, beside House's pages).
   const [measured, setMeasured] = useState<number | null>(null);
-  const width = measured ?? (windowWidth >= WIDE ? windowWidth - RAIL : windowWidth);
+  const { listed } = useHouseWorkspace();
+  const width = measured ?? (windowWidth >= WIDE ? windowWidth - RAIL - (listed ? HOUSE_NAV : 0) : windowWidth);
   const two = spreads && width >= COLUMNS_MIN;
-  const max = two ? undefined : maxWidth;
-  const onLayout = spreads ? (e: LayoutChangeEvent) => setMeasured(e.nativeEvent.layout.width) : undefined;
+  const filling = fills && !spreads && windowWidth >= WIDE;
+  const max = two ? undefined : filling ? FILL_MAX : maxWidth;
+  const onLayout = spreads || filling ? (e: LayoutChangeEvent) => setMeasured(e.nativeEvent.layout.width) : undefined;
   return (
     <ContentWidth.Provider value={max ?? MAIN_MAX}>
       <TwoColumns.Provider value={two}>
-        <View testID={testID} onLayout={onLayout} style={[styles.screen, { backgroundColor: colors.background }]}>
-          {bar}
-          <ScrollView
-            testID="page-scroll"
-            style={styles.scroll}
-            scrollEventThrottle={onNearEnd ? 200 : undefined}
-            onScroll={nearEnd(onNearEnd)}
-            contentContainerStyle={[styles.page, { maxWidth: max }, windowWidth >= WIDE && styles.leading, two && styles.filled]}
-            refreshControl={
-              // In two columns the main column pulls to refresh, as it's the one that scrolls.
-              onRefresh && !two ? (
-                <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor={colors.foreground} />
-              ) : undefined
-            }
-          >
-            <PageScrollContext.Provider value={{ onNearEnd, refreshing, onRefresh }}>{children}</PageScrollContext.Provider>
-          </ScrollView>
-        </View>
+        <Filled.Provider value={filling ? Math.min(width - 2 * GUTTER, FILL_MAX) : null}>
+          <View testID={testID} onLayout={onLayout} style={[styles.screen, { backgroundColor: colors.background }]}>
+            {bar}
+            <ScrollView
+              testID="page-scroll"
+              style={styles.scroll}
+              scrollEventThrottle={onNearEnd ? 200 : undefined}
+              onScroll={nearEnd(onNearEnd)}
+              contentContainerStyle={[styles.page, { maxWidth: max }, windowWidth >= WIDE && styles.leading, two && styles.filled]}
+              refreshControl={
+                // In two columns the main column pulls to refresh, as it's the one that scrolls.
+                onRefresh && !two ? (
+                  <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor={colors.foreground} />
+                ) : undefined
+              }
+            >
+              <PageScrollContext.Provider value={{ onNearEnd, refreshing, onRefresh }}>{children}</PageScrollContext.Provider>
+            </ScrollView>
+          </View>
+        </Filled.Provider>
       </TwoColumns.Provider>
     </ContentWidth.Provider>
   );

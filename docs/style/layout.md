@@ -56,6 +56,21 @@ still look right stretched (content capped, nothing pinned to far edges).
   closes the other. (#44)
 - The House tab is a workspace: its pages listed down the left, the open
   page beside them. (House workspace B, #44)
+- **House's pages fill the room beside House's list** (`Screen` with
+  `fills`), up to `FILL_MAX` (1600), with our own sections (the name above
+  a grey group) side by side. `Flow` shares out a page's sections of one
+  kind (the John list's kinds, a housemate's record) into as many columns
+  of at least `COLUMN_MIN` (360) as fit, two on a 1440 laptop and three on
+  a 1920 screen, each to the shortest column so the columns end near each
+  other. `Pair` puts two stacks side by side: what a page gives or explains
+  beside what you choose. A page's own tools sit at the top right over the
+  columns (Add a John, with the week's Johns and points). On a phone, and
+  where two columns don't fit, the same sections stack in their phone
+  order. (House pages, 1 Nov) *Not* the section names hanging in a column
+  left of their groups, one wide column, or cards on a blank page: each
+  leaves the room unused. *Backed by* Material's canonical layouts (feed
+  and supporting pane), which fill a wide window with columns rather than
+  stretching one.
 
 ## Phone pages
 

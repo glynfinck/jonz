@@ -1,4 +1,5 @@
 import {
+  BIN_NIGHT,
   CATEGORY_LABEL,
   CREW_COPY,
   DEAL_COPY,
@@ -514,6 +515,24 @@ describe('on a laptop', () => {
     expect(screen.getByTestId('ask-toggle')).toHaveTextContent('ask closed');
     await fireEvent.press(screen.getByTestId('ask-toggle'));
     expect(screen.queryByTestId('john-panel')).toBeNull();
+  });
+
+  it('puts Add a John over the list with how many Johns and the week’s points, in amber once the house is dealt', async () => {
+    await open();
+    const bar = within(screen.getByTestId('john-list-bar'));
+    expect(bar.getByText(new RegExp(`^${JOHN_LIST_COPY.count(2)} About \\d+ points a week`))).toBeOnTheScreen();
+    expect(bar.getByTestId('add-john')).toHaveStyle({ backgroundColor: BIN_NIGHT.light.hivis });
+    // Not at the foot as well.
+    expect(screen.getAllByTestId('add-john')).toHaveLength(1);
+  });
+
+  it('keeps Add a John in outline before the first deal, whose button is the page’s one in amber', async () => {
+    (loadHouse as jest.Mock).mockResolvedValue(snapshot({ house: { ...snapshot().house, everDealt: false } }));
+    await open();
+    expect(within(screen.getByTestId('john-list-bar')).getByTestId('add-john')).toHaveStyle({ backgroundColor: 'transparent' });
+    expect(within(screen.getByTestId('deal')).getByRole('button', { name: NEXT_UP_COPY.dealWeek1 })).toHaveStyle({
+      backgroundColor: BIN_NIGHT.light.hivis,
+    });
   });
 
   it('opens a John to read in the panel, for a housemate who is not an admin', async () => {

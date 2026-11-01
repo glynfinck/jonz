@@ -58,6 +58,23 @@ function StakeFor({ houseId, userId }: { houseId: string; userId: string }) {
       ? [...new Set(stake.data.ledger.filter((l) => l.kind === 'forfeit').map((l) => l.month))].sort().reverse().slice(0, 2)
       : [];
 
+  // An admin's let-offs, after the months.
+  const letOffRows =
+    forfeitMonths.length > 0 ? (
+      <Group testID="let-off">
+        {forfeitMonths.map((month) => (
+          <Row
+            key={month}
+            leading={<RowIcon icon={RotateCcwIcon} />}
+            title={RESET_COPY.letOff(monthLabel(month).split(' ')[0])}
+            meta={RESET_COPY.letOffMeta}
+            onPress={() => setLetOff(month)}
+            testID={`let-off-${month}`}
+          />
+        ))}
+      </Group>
+    ) : null;
+
   return (
     <Screen
       bar={
@@ -70,6 +87,7 @@ function StakeFor({ houseId, userId }: { houseId: string; userId: string }) {
       }
       refreshing={refreshing}
       onRefresh={pull}
+      fills
       testID="stake-screen"
     >
       <PageTitle page={STAKE_HISTORY_COPY.title} />
@@ -99,24 +117,13 @@ function StakeFor({ houseId, userId }: { houseId: string; userId: string }) {
             />
           </View>
           {empty ? (
-            <EmptyState icon={CoinsIcon} title={STAKE_HISTORY_COPY.empty} body={STAKE_HISTORY_COPY.emptyMine} />
+            <>
+              <EmptyState icon={CoinsIcon} title={STAKE_HISTORY_COPY.empty} body={STAKE_HISTORY_COPY.emptyMine} />
+              {letOffRows}
+            </>
           ) : (
-            <StakeHistory months={months} />
+            <StakeHistory months={months} after={letOffRows} afterRows={forfeitMonths.length} />
           )}
-          {forfeitMonths.length > 0 ? (
-            <Group testID="let-off">
-              {forfeitMonths.map((month) => (
-                <Row
-                  key={month}
-                  leading={<RowIcon icon={RotateCcwIcon} />}
-                  title={RESET_COPY.letOff(monthLabel(month).split(' ')[0])}
-                  meta={RESET_COPY.letOffMeta}
-                  onPress={() => setLetOff(month)}
-                  testID={`let-off-${month}`}
-                />
-              ))}
-            </Group>
-          ) : null}
         </>
       )}
       <ResetSheet
