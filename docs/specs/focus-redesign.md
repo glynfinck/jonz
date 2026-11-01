@@ -49,12 +49,15 @@ waits for your vote.
 
 ### Visual rules (all screens)
 
+> These were the rules when Focus shipped. The living rules are in
+> `docs/style/`, which wins where the two differ; the lines below are
+> updated where later picks replaced them.
+
 - **Type**: six roles in `theme.ts`, never inline sizes. Title 28/32 Black
   caps (once per screen, in the 52pt title bar); Lead 22/28 Bold, sentence
-  case (at most once per screen); SectionLabel 12 ExtraBold caps, tracking 1,
-  muted; RowTitle 17 Bold; Body 16 Regular; Meta 14 Regular, muted. Tab
+  case (at most once per screen); SectionLabel 15 ExtraBold, sentence case (#60); RowTitle 17 Bold; Body 16 Regular; Meta 14 Regular, muted. Tab
   labels 12 Bold, sentence case. Nothing smaller than 12, numbers in tabular
-  figures. Caps only for the Title, section labels and chips.
+  figures. Caps only for the Title and short grid labels and status words (#60).
 - **Hi-vis amber** has two jobs: the fill of at most one primary button per
   screen, and the 3pt marker on the current tab. Never text, a border, a
   bar, a chip or an avatar. Your avatar is an ink plate with light initials.
@@ -68,15 +71,15 @@ waits for your vote.
   clock; checking an outline chip with a tick; done a green tick; late a
   hazard clock and "Late"; overdue a hazard triangle; missed a hazard X;
   disputed a hazard flag; excused a quiet shield.
-- **Motifs**: a lid colour appears only as a 10pt dot before the category in
-  a meta line. Inside the house, hazard tape is only a 4pt left edge on an
+- **Motifs**: a lid colour appears only as a `LidBar` before the category in
+  a meta line (#60). Inside the house, hazard tape is only a 4pt left edge on an
   overdue or missed John. The full tape, the boxed wordmark and big caps stay
   for the front door, sign-in, the join page and the invite sheet.
 - **Surfaces**: the pavement page and one inset group per section (card
   colour, radius 10, no border, hairlines that start at the text). At most
   one stand-alone card per screen (Today's Next up, House's month card). A
   card never holds a card or a tinted panel.
-- **Rows**: one `Row` everywhere: a 32pt leading slot (tick circle, avatar or
+- **Rows**: one `Row` everywhere: a 32pt leading slot (tick box (#60), avatar or
   icon), a one-line title, one meta line, one trailing item (a value, a chip
   or a text button), 56 to 64pt tall with 48pt targets. 16pt gutter plus 16pt
   inset; 8 from a section label to its group, 32 between sections.
@@ -85,7 +88,7 @@ waits for your vote.
   right, the sparkles that open Jonz (admins) always at the edge with the
   screen's own `•••` just inside them. What a tab says about itself (Today's
   date, House's housemates) is the page's first line, under the bar, as
-  Week's range line already is. Pushed pages put "‹ House" above the title. Content capped at 680pt on every tab.
+  Week's range line already is. Pushed pages put "‹ House" above the title. Content capped at 680pt on a phone; from `WIDE` the main column runs to 1040 beside a docked side panel (#59).
 
 ### Today
 
