@@ -132,7 +132,9 @@ permanent once a store has seen them.
   everywhere), `Fold`, `Card` (at most one stand-alone card a screen),
   `TickBox`, `StatusMark` and `Chip` (core's `STATUS_MARK`, drawn),
   `LidBar`, `Avatar`, `CountBadge`, `Button`, `TextButton`, `TextLink`,
-  `Field`, `Alert`, `Segmented`, `EmptyState`, `Reading` and `ReadFailed`
+  `Field`, `SignInForm` and `HiddenUsername` (sign-in and password boxes
+  as a real form on the web, for password managers), `Alert`, `Segmented`,
+  `EmptyState`, `Reading` and `ReadFailed`
   (a first read on its way, or "Try again"), toasts, and the brand pieces
   (`Wordmark`, `HazardTape`, `SignInPanel`). `john-row.tsx` is a John as a
   row wherever one is drawn (Today, Week's groups and its table): core's

@@ -6,6 +6,7 @@ pages are private artifacts on claude.ai.
 
 | Date | Decision | Where | Rule |
 | --- | --- | --- | --- |
+| 2026-11-01 | Sign-in works with password managers: real forms on the web, username and new-password boxes, Enter sends | this PR | [controls](controls.md#inputs) |
 | 2026-10-31 | One style guide, a component kit with lint rules, and a screenshot-tested style page; the rules marked New in this guide approved with it | this guide | all |
 | 2026-10-31 | Admin lists: one smart search box with filters as tags, for very many rows, no day headings | busy lists, after #82 | [lists](lists.md#admin-lists) |
 | 2026-10-31 | Long lists load as you scroll with one shared foot; on a laptop list and panel scroll separately, search and column names pinned | #82 | [lists](lists.md#long-lists), [layout](layout.md#laptop-pages) |
