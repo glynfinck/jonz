@@ -112,7 +112,7 @@ test.describe("a house with its week dealt", () => {
     for (const { row, path, title } of PUSHED) {
       await toHousePage(page, row).click();
       await expect(page).toHaveURL(new RegExp(`${path}$`));
-      await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: title, exact: true, level: 1 })).toBeVisible();
       await tapBack(page, SECTION_LABEL.house);
       await expectOnHouse(page, houseName);
     }
