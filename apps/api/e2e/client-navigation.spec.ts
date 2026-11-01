@@ -80,8 +80,8 @@ const PUSHED = [
   { row: "to-rules", path: "/house/rules", title: PAGE_TITLE.rules },
   { row: "to-away", path: "/house/away", title: PAGE_TITLE.away },
   { row: "to-pass", path: "/house/pass", title: PAGE_TITLE.pass },
-  // Your preferences, on a phone from You on House: they're on Days and time away.
-  { row: "to-prefs", path: "/house/away", title: PAGE_TITLE.away },
+  // You: your name, look and sign-in, help, and leaving.
+  { row: "to-you", path: "/house/you", title: PAGE_TITLE.you },
 ];
 
 test.describe("a house with its week dealt", () => {
