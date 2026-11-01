@@ -8,6 +8,7 @@ import { PageTitle } from '@/components/page-title';
 import { Body, Heading, Meta } from '@/components/text';
 import { TextButton } from '@/components/text-button';
 import { TextLink } from '@/components/text-link';
+import { ButtonRow } from '@/components/button-row';
 import { CONTENT_MAX, LEADING, ROW_GAP, SPACE, useTheme } from '@/theme';
 
 type Point = (typeof FRONT_DOOR_COPY.points)[number]['key'];
@@ -55,10 +56,10 @@ export default function FrontDoor() {
             );
           })}
         </View>
-        <View style={[styles.ways, sideBySide && styles.waysSideBySide]}>
+        <ButtonRow stacked={!sideBySide}>
           <Button href={signInPath(DOOR.start)} label={FRONT_DOOR_COPY.start} testID="start" />
           <Button href={signInPath(DOOR.invite)} label={FRONT_DOOR_COPY.invite} variant="outline" testID="invite" />
-        </View>
+        </ButtonRow>
       </Sign>
       <DoorFoot>
         <View style={styles.foot}>
@@ -77,7 +78,5 @@ const styles = StyleSheet.create({
   // The icon sits on the first line's middle, in the row's leading slot.
   icon: { width: LEADING, alignItems: 'center' },
   words: { flex: 1 },
-  ways: { gap: SPACE.sm },
-  waysSideBySide: { flexDirection: 'row', alignItems: 'flex-start' },
   foot: { flexDirection: 'row', alignItems: 'center', gap: SPACE.lg },
 });

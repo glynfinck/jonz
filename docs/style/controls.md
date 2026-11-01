@@ -5,7 +5,8 @@
 - **Every control is at least `TAP` (48) tall,** links included (`TextLink`,
   or `Button` with `href`). (AGENTS.md) *Backed by* Material's 48dp, above
   the HIG's 44pt and WCAG 2.2's 24px minimum.
-- Icons in buttons are 20; icon-only buttons are a 48 square. (**New**)
+- An icon beside a control's words is `ICON` (20); the glyph in an icon-only
+  control is `ICON_ONLY` (22) in a `TAP` square. (**New**)
 
 ## Kinds of button
 
@@ -32,12 +33,21 @@
   report drafts, 31 Oct) *Backed by* the HIG's two-button alerts, which sit
   side by side at equal widths and stack when a label is too long, and
   GOV.UK's button groups.
+- That is `ButtonRow`: equal shares of the line while each button has at
+  least `BUTTON_MIN` (136) and every label fits on one line; otherwise a
+  full-width stack. `stacked` keeps it a stack (the front door on a phone).
+  The lint rule `jonz/no-hand-made-button-row` refuses buttons laid side by
+  side any other way.
+- **The one exception** is Today's Next up: Mark done fills the line and
+  Photo keeps its own width beside it (an icon alone on a small phone), as
+  Focus drew it. (Focus, #17)
 - A primary and its secondary are the same height and width, whether side
   by side or stacked. (**New**)
 
 ## Icon buttons
 
-- Close, `•••`, the sparkles and any other icon-only control are one size
+- Close, `•••`, the sparkles and any other icon-only control are an
+  `IconButton`: one size
   (a 48 square, 20 icon) with one look: no edge, or the outline button's
   edge. Never a heavier ink border. Each has a spoken name. (**New**)
   *Backed by* Nielsen's "consistency and standards" and WCAG 4.1.2.

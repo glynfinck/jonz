@@ -43,6 +43,18 @@ The guide stays true only if every design decision lands in it.
    in the PR which gap you filled, so Glyn can confirm it.
 4. Never change a rule without a pick behind it. Ask instead.
 
+## What checks it
+
+- **Lint** (`apps/client/eslint-rules/jonz.js`, part of `npm run lint`):
+  no colour, text size, spacing or corner written by hand, no buttons laid
+  side by side outside a `ButtonRow`, no hand-made pressables in screens.
+  Older code that broke a rule before it existed is listed in
+  `apps/client/eslint-suppressions.json`; fix it and run
+  `npx eslint src --prune-suppressions` there to shrink the list. Never add
+  to that list by hand.
+- **Contrast** (`packages/core/src/bin-night.test.ts`): every colour pair in
+  Day and Night.
+
 ## For agents
 
 Load the `house-style` skill (`.claude/skills/house-style/SKILL.md`) for any

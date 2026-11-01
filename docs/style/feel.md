@@ -21,7 +21,11 @@ kind of John. Calm by default, loud only for the moments that count.
   shows only as its `LidBar`. (Who's away, #23)
 - **Contrast:** words meet 4.5 to 1 against what's behind them and icons,
   edges and focus rings 3 to 1, in Day and Night. A theme test checks the
-  token pairs. (**New**) *Backed by* WCAG 1.4.3 and 1.4.11.
+  token pairs (`packages/core/src/bin-night.test.ts`). (**New**) *Backed by*
+  WCAG 1.4.3 and 1.4.11.
+- Hazard and green as **words** sit on a card or a group, never on the bare
+  pavement: in Day they reach 4.1 and 4.2 to 1 there, enough for an icon,
+  not for small words.
 - **Never write a colour by hand.** Colours come from `useTheme()`, which
   reads `BIN_NIGHT` in `@app/core`. (AGENTS.md)
 

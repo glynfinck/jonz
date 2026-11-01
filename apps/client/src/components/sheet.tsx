@@ -14,9 +14,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/button';
 import { HazardTape, SIGN_TAPE } from '@/components/hazard-tape';
 import { Body, Lead } from '@/components/text';
+import { IconButton } from '@/components/icon-button';
 import { GUTTER, INSET, SECTION_GAP, SPACE, TAP, useTheme, WIDE } from '@/theme';
 
 /**
@@ -172,7 +172,7 @@ export function Sheet({
               ) : (
                 <View style={styles.title} />
               )}
-              <Button variant="ghost" icon={XIcon} label={SHELL_COPY.close} iconOnly onPress={onClose} testID="sheet-close" />
+              <IconButton icon={XIcon} label={SHELL_COPY.close} onPress={onClose} testID="sheet-close" />
             </View>
             <ScrollView
               ref={scroll}
