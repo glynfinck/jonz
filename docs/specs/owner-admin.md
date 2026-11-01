@@ -3,7 +3,8 @@
 ## What it does
 
 The owner of Jonz (not a house admin) has pages of their own at `/admin`.
-The first three are:
+`/admin` opens on the **Inbox**: problems, ideas and questions people send
+from the app (`docs/specs/report-a-problem.md`). The first three before it were:
 
 - **Notices**: a band at the top of the app for everyone. It can be an outage
   status, an offer, or news.

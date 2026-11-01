@@ -14,6 +14,7 @@ import { Button } from '@/components/button';
 import { Field } from '@/components/field';
 import { Reminders } from '@/components/house/reminders';
 import { useHouseWorkspace } from '@/components/house/workspace';
+import { HelpSection } from '@/components/house-page/help-section';
 import { PendingMeta } from '@/components/house-page/setup-section';
 import { Row, RowIcon } from '@/components/row';
 import { Section } from '@/components/section';
@@ -125,6 +126,8 @@ export function YouSection({ houseId, userId, view }: { houseId: string; userId:
           testID="sign-out"
         />
       </Section>
+
+      <HelpSection house={view.snapshot.house.name} />
 
       <View style={styles.leave}>
         <Section label={DELETE_COPY.leave}>

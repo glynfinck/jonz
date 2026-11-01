@@ -75,9 +75,16 @@ export function inQuietHours(prefs: NotificationPrefs, now: Date, houseZone: str
  * What to do with a push of this kind, now: send it, send it without a
  * sound (quiet hours), or not at all (that kind is off). Something that
  * happened (a dispute, a flag, the deal) arrives quietly rather than late.
+ * `support` (a reply to your report, or a report for the owner) has no
+ * switch of its own: it is something you asked for.
  */
-export function pushFor(prefs: NotificationPrefs, kind: PushKind, now: Date, houseZone: string): "send" | "quiet" | "skip" {
-  if (!prefs[kind]) return "skip";
+export function pushFor(
+  prefs: NotificationPrefs,
+  kind: PushKind | "support",
+  now: Date,
+  houseZone: string,
+): "send" | "quiet" | "skip" {
+  if (kind !== "support" && !prefs[kind]) return "skip";
   return inQuietHours(prefs, now, houseZone) ? "quiet" : "send";
 }
 
