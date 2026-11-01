@@ -26,6 +26,14 @@ still look right stretched (content capped, nothing pinned to far edges).
   always returns to the tab's home (`dismissTo`), never through tab history.
   (Focus, #17; #34) *Backed by* the HIG's tab bar guidance and Nielsen's
   "user control and freedom".
+- **Things you set together are on one page.** House's pages are Overview,
+  The Wall (with History beside it), Johns (with their groups), Rules (with
+  who the admins are), Days and time away (your days, best time and Johns
+  you'd rather, beside the house's time away), and House Pass. A merged
+  page puts its two parts side by side on a laptop (`Pair`) and one after
+  the other on a phone, or a switch where both are long lists (the Wall
+  and History). An old link to a merged page lands on the page it joined.
+  (House pages, 1 Nov)
 
 ## The title bar
 

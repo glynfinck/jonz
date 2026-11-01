@@ -1,9 +1,10 @@
-import { ADMINS_COPY, HISTORY_COPY } from '@app/core';
+import { ADMINS_COPY, HISTORY_COPY, PAGE_TITLE } from '@app/core';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { loadHouse } from '@/api/board';
 import { setRole } from '@/api/settings';
 import AdminsScreen from '@/app/(house)/house/admins';
+import RulesScreen from '@/app/(house)/house/rules';
 import { ToastProvider } from '@/components/toast';
 import { snapshot } from '@/testing/house';
 import { renderPages } from '@/testing/pages';
@@ -11,7 +12,7 @@ import { renderPages } from '@/testing/pages';
 jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
 jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
 jest.mock('@/api/history', () => ({ undoAction: jest.fn(), undoLatest: jest.fn() }));
-jest.mock('@/api/settings', () => ({ setRole: jest.fn() }));
+jest.mock('@/api/settings', () => ({ setRole: jest.fn(), updateHouse: jest.fn(), loadJohnList: jest.fn() }));
 jest.mock('@/api/supabase', () => ({ supabase: {} }));
 let mockMe = 'priya';
 jest.mock('@/hooks/use-membership', () => ({
@@ -20,17 +21,25 @@ jest.mock('@/hooks/use-membership', () => ({
 
 const ADA = { userId: 'ada', name: 'Ada', photo: null, role: 'member' as const, streak: 0, immunityTokens: 0, swapTokens: 0, prefs: { days: [], bestTime: null, rather: {} } };
 
-async function open() {
-  await renderPages(
-    {
-      'house/admins': () => (
-        <ToastProvider>
-          <AdminsScreen />
-        </ToastProvider>
-      ),
-    },
-    '/house/admins',
+function Rules() {
+  return (
+    <ToastProvider>
+      <RulesScreen />
+    </ToastProvider>
   );
+}
+
+function OldAdmins() {
+  return (
+    <ToastProvider>
+      <AdminsScreen />
+    </ToastProvider>
+  );
+}
+
+/** The admins, on the Rules page beside the rules they can change, from its own path or an old link to Admins. */
+async function open(path = '/house/rules') {
+  await renderPages({ 'house/rules': Rules, 'house/admins': OldAdmins }, path);
   return within(await screen.findByTestId('admins-list'));
 }
 
@@ -39,6 +48,13 @@ beforeEach(() => {
   mockMe = 'priya';
   (loadHouse as jest.Mock).mockResolvedValue(snapshot({ members: [...snapshot().members, ADA] }));
   (setRole as jest.Mock).mockResolvedValue(undefined);
+});
+
+it('is on the Rules page, where an old link to Admins lands', async () => {
+  await open('/house/admins');
+  expect(within(screen.getByTestId('title-bar')).getByRole('header', { name: PAGE_TITLE.rules })).toBeOnTheScreen();
+  expect(screen.getByTestId('rules-panel')).toBeOnTheScreen();
+  expect(within(screen.getByTestId('admins-section')).getByText(ADMINS_COPY.title)).toBeOnTheScreen();
 });
 
 it('lists the admins, and the only one is told leaving hands over', async () => {

@@ -1,10 +1,12 @@
-import { HISTORY_COPY, historyItems, LIST_COPY, type ActionRow } from '@app/core';
+import { HISTORY_COPY, historyItems, LIST_COPY, WALL_COPY, type ActionRow } from '@app/core';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { loadHouse } from '@/api/board';
 import { loadHistory, undoAction } from '@/api/history';
 import { catchUp } from '@/api/house';
+import { loadWall } from '@/api/wall';
 import HistoryScreen from '@/app/(house)/house/history';
+import WallScreen from '@/app/(house)/house/wall';
 import { snapshot } from '@/testing/house';
 import { renderPages } from '@/testing/pages';
 
@@ -12,6 +14,9 @@ jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
 jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
 jest.mock('@/api/history', () => ({ HISTORY_PAGE: 60, loadHistory: jest.fn(), undoAction: jest.fn() }));
 jest.mock('@/api/supabase', () => ({ supabase: {} }));
+// History is on the Wall: beside it on a laptop, behind a switch on a phone (as here).
+jest.mock('@/api/wall', () => ({ loadWall: jest.fn(), setReaction: jest.fn() }));
+jest.mock('@/components/john-sheet', () => ({ useJohnSheet: () => ({ open: jest.fn(), close: jest.fn() }) }));
 jest.mock('@/hooks/use-membership', () => ({
   useMembership: () => ({ session: { user: { id: 'priya' } }, house: { id: 'h1', name: 'Flat 3' } }),
 }));
@@ -60,14 +65,30 @@ beforeEach(() => {
   (catchUp as jest.Mock).mockResolvedValue(false);
   (loadHistory as jest.Mock).mockResolvedValue(historyItems(ROWS));
   (undoAction as jest.Mock).mockResolvedValue(undefined);
+  (loadWall as jest.Mock).mockResolvedValue({ events: [], photos: {}, older: null });
 });
 
 afterEach(() => jest.useRealTimers());
 
+/** The Wall, switched to History by an old link to it. */
 async function open() {
-  await renderPages({ 'house/history': HistoryScreen }, '/house/history');
+  await show();
   await screen.findAllByTestId('history-day');
 }
+
+async function show() {
+  await renderPages({ 'house/wall': WallScreen, 'house/history': HistoryScreen }, '/house/history');
+}
+
+it('is on the Wall, switched to History by an old link, and switches back', async () => {
+  await open();
+  expect(within(screen.getByTestId('title-bar')).getByRole('header', { name: WALL_COPY.title })).toBeOnTheScreen();
+  const switcher = within(screen.getByTestId('wall-shows'));
+  expect(switcher.getByRole('radio', { name: HISTORY_COPY.title })).toBeChecked();
+  await fireEvent.press(switcher.getByRole('radio', { name: WALL_COPY.title }));
+  expect(screen.queryByTestId('history-day')).toBeNull();
+  expect(await screen.findByTestId('wall-empty')).toBeOnTheScreen();
+});
 
 it('tells every move a day at a time, with Undo only where it still reaches', async () => {
   await open();
@@ -115,7 +136,7 @@ it('shows only yours under Mine', async () => {
 
 it('says what lands here when nothing has yet', async () => {
   (loadHistory as jest.Mock).mockResolvedValue([]);
-  await renderPages({ 'house/history': HistoryScreen }, '/house/history');
+  await show();
   expect(await screen.findByTestId('history-empty')).toHaveTextContent(new RegExp(HISTORY_COPY.title));
   // Nothing to say "That's everything" under.
   expect(screen.queryByTestId('history-foot')).toBeNull();

@@ -176,6 +176,29 @@ test("each place spreads out on a laptop, and a narrow window keeps the phone's 
   await fillsTheRoom(page, person.getByTestId("person-sections-column").last());
   await shoot(page, "person");
 
+  // Groups, Admins, Preferences and History are parts of other pages now: six in the list.
+  await expect(nav.getByRole("link")).toHaveCount(6);
+  await nav.getByTestId("nav-wall").click();
+  // History beside the Wall, under its name, the two sharing a top edge.
+  const history = page.getByTestId("wall-pair-end").getByTestId("history-section");
+  await expect(history).toBeVisible();
+  expect(await topOf(page.getByTestId("wall-pair-start"))).toBeCloseTo(await topOf(page.getByTestId("wall-pair-end")), 0);
+  await expect(page.getByTestId("wall-shows")).toHaveCount(0);
+  await shoot(page, "wall-history");
+  // The admins beside the rules they can change.
+  await nav.getByTestId("nav-rules").click();
+  await expect(page.getByTestId("rules-pair-start").getByTestId("rules-panel")).toBeVisible();
+  await expect(page.getByTestId("rules-pair-end").getByTestId("admins-section")).toBeVisible();
+  await shoot(page, "rules-admins");
+  // Your days and best time beside the house's time away.
+  await nav.getByTestId("nav-away").click();
+  await expect(page.getByTestId("away-pair-start").getByTestId("prefs-time")).toBeVisible();
+  await expect(page.getByTestId("away-pair-end").getByTestId("away-panel")).toBeVisible();
+  await shoot(page, "days-away");
+  // The groups among the John list's kinds.
+  await nav.getByTestId("nav-johns").click();
+  await expect(page.getByTestId("john-kinds").getByTestId("johns-groups")).toBeVisible();
+
   await page.getByTestId("house-nav").getByRole("link", { name: HOUSE_LOWER_COPY.overview }).click();
   await expect(house.getByTestId("month-card")).toBeVisible();
 

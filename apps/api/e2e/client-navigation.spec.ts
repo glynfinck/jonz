@@ -80,7 +80,8 @@ const PUSHED = [
   { row: "to-rules", path: "/house/rules", title: PAGE_TITLE.rules },
   { row: "to-away", path: "/house/away", title: PAGE_TITLE.away },
   { row: "to-pass", path: "/house/pass", title: PAGE_TITLE.pass },
-  { row: "to-prefs", path: "/house/prefs", title: PAGE_TITLE.prefs },
+  // Your preferences, on a phone from You on House: they're on Days and time away.
+  { row: "to-prefs", path: "/house/away", title: PAGE_TITLE.away },
 ];
 
 test.describe("a house with its week dealt", () => {
@@ -140,28 +141,35 @@ test.describe("a house with its week dealt", () => {
     await expectOnHouse(page, houseName);
   });
 
-  for (const path of [
-    "/house/johns",
-    "/house/rules",
-    "/house/away",
-    "/house/groups",
-    "/house/wall",
-    "/house/stake",
-    "/house/pass",
-    "/house/describe",
-    "/house/prefs",
+  // Each page, and where an old link to a page that's now part of another lands.
+  for (const { path, lands = path } of [
+    { path: "/house/johns" },
+    { path: "/house/rules" },
+    { path: "/house/away" },
+    { path: "/house/wall" },
+    { path: "/house/stake" },
+    { path: "/house/pass" },
+    { path: "/house/describe" },
+    { path: "/house/groups", lands: "/house/johns" },
+    { path: "/house/admins", lands: "/house/rules" },
+    { path: "/house/prefs", lands: "/house/away" },
+    { path: "/house/history", lands: "/house/wall?view=history" },
   ]) {
     test(`${path} opened cold, and after a refresh, still goes back to House`, async ({ page }) => {
+      const [where, query] = lands.split("?");
+      const landed = new RegExp(`${where}${query ? `\\?${query}` : ""}$`);
+      // Expo Router copies a page's params onto the routes under it (as for a housemate's page, below).
+      const home = query ? new RegExp(`/house(\\?${query})?$`) : /\/house$/;
       await page.goto(path);
-      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page).toHaveURL(landed);
       await tapBack(page, SECTION_LABEL.house);
-      await expectOnHouse(page, houseName);
+      await expectOnHouse(page, houseName, home);
 
       await page.goto(path);
       await page.reload();
-      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page).toHaveURL(landed);
       await tapBack(page, SECTION_LABEL.house);
-      await expectOnHouse(page, houseName);
+      await expectOnHouse(page, houseName, home);
     });
   }
 
