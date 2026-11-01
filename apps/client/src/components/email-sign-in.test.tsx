@@ -51,7 +51,7 @@ it('checks the address before asking, and says when the password is wrong', asyn
   expect(screen.getByRole('alert')).toHaveTextContent(COPY.wrongPassword);
 });
 
-it('makes an account, then takes the emailed code', async () => {
+it('makes an account, then checks the emailed code as soon as its sixth digit is in', async () => {
   (signUpWithEmail as jest.Mock).mockResolvedValue('code-sent');
   (confirmEmail as jest.Mock).mockResolvedValue(undefined);
   await render(<EmailSignIn />);
@@ -66,9 +66,12 @@ it('makes an account, then takes the emailed code', async () => {
   expect(signUpWithEmail).toHaveBeenCalledWith('sam@example.com', 'long enough');
   expect(screen.getByText(COPY.codeHint('sam@example.com'))).toBeOnTheScreen();
   expect(screen.getByText(COPY.existingHint)).toBeOnTheScreen();
+  await type('email-code', '123 45');
+  expect(confirmEmail).not.toHaveBeenCalled();
+  // Pasted or filled in for you, with its space: checked without a tap.
   await type('email-code', '123 456');
-  await fireEvent.press(screen.getByRole('button', { name: COPY.confirm }));
-  expect(confirmEmail).toHaveBeenCalledWith('sam@example.com', '123 456');
+  expect(confirmEmail).toHaveBeenCalledTimes(1);
+  expect(confirmEmail).toHaveBeenCalledWith('sam@example.com', '123456');
 });
 
 it('sends a new sign-up code, and says a wrong one is wrong', async () => {
@@ -81,8 +84,11 @@ it('sends a new sign-up code, and says a wrong one is wrong', async () => {
   await type('email-password', 'long enough');
   await fireEvent.press(screen.getByRole('button', { name: COPY.signUp }));
   await type('email-code', '000000');
-  await fireEvent.press(screen.getByRole('button', { name: COPY.confirm }));
+  expect(confirmEmail).toHaveBeenCalledWith('sam@example.com', '000000');
+  // On the code boxes, where the code is, and the next digit starts it over.
   expect(screen.getByRole('alert')).toHaveTextContent(COPY.wrongCode);
+  await type('email-code', '0000007');
+  expect(screen.getByTestId('email-code').props.value).toBe('7');
   await fireEvent.press(screen.getByRole('button', { name: COPY.resend }));
   expect(resendSignUpCode).toHaveBeenCalledWith('sam@example.com');
   expect(screen.getByText(COPY.resent)).toBeOnTheScreen();

@@ -20,6 +20,7 @@ import {
 } from '@/api/email-auth';
 import { Alert } from '@/components/alert';
 import { Button } from '@/components/button';
+import { CodeBoxes } from '@/components/code-boxes';
 import { Field } from '@/components/field';
 import { HiddenUsername, SignInForm } from '@/components/sign-in-form';
 import { Meta } from '@/components/text';
@@ -72,7 +73,8 @@ export function EmailSignIn() {
         await resendSignUpCode(email).catch(() => undefined);
         setStep('confirm');
       }
-      setProblem({ message });
+      // A wrong or old code shows on the code boxes themselves.
+      setProblem(message === COPY.wrongCode ? { field: 'code', message } : { message });
     } finally {
       setBusy(false);
     }
@@ -108,18 +110,16 @@ export function EmailSignIn() {
       testID="email-address"
     />
   );
-  const codeField = (hint: string) => (
-    <Field
+  const codeField = (hint: string, onFilled?: (code: string) => void) => (
+    <CodeBoxes
       label={COPY.code}
       hint={hint}
       value={code}
       onChangeText={setCode}
+      onFilled={onFilled}
       problem={fieldProblem('code')}
-      keyboardType="number-pad"
-      autoComplete="one-time-code"
-      textContentType="oneTimeCode"
-      maxLength={9}
       editable={!busy}
+      autoFocus
       testID="email-code"
     />
   );
@@ -207,7 +207,7 @@ onPress={() => void signUp()}
 
       {step === 'confirm' ? (
         <SignInForm onSubmit={submit} style={styles.step}>
-          {codeField(COPY.codeHint(email.trim()))}
+          {codeField(COPY.codeHint(email.trim()), (typed) => void run([], () => confirmEmail(email, typed)))}
           <Meta>{COPY.existingHint}</Meta>
           {loose}
           {told}
