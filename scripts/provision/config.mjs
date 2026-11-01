@@ -4,7 +4,10 @@ export const CONFIG = {
   app: "Jonz",
   domain: "jonz.app",
   supabase: {
-    name: "Johns",
+    // Found by ref first, so renaming the project in the dashboard can't
+    // make provision try to create a second one; the name is for creating.
+    ref: "mmnmffdpdzrncvwzgjhq",
+    name: "Jonz",
     orgId: "qfabnyoyejsscqklyrmx",
     region: "eu-west-2",
     // The smallest compute a paid organisation can choose.
