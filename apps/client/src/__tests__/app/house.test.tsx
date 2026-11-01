@@ -5,6 +5,8 @@ import {
   HOUSE_PAGE_COPY,
   type HistoryRow,
   INVITE_COPY,
+  monthOf,
+  monthWord,
   PASS_COPY,
   stakeRules,
 } from '@app/core';
@@ -353,7 +355,8 @@ describe('the Table', () => {
   it("says when it can't read the month's Table", async () => {
     (loadTable as jest.Mock).mockRejectedValue(new Error('offline'));
     await open();
-    await showSpan('October');
+    // With no Table read, the menu offers this month on the house's clock, whenever the test runs.
+    await showSpan(monthWord(monthOf(new Date(), 'Europe/London')));
     expect(screen.getByRole('alert')).toHaveTextContent(HOUSE_PAGE_COPY.tableUnreadable);
   });
 
