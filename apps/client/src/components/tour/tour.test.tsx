@@ -119,7 +119,19 @@ it('leaves out the steps the facts rule out, so the count is what you see', asyn
   expect(screen.getByTestId('tour-count')).toHaveTextContent('1 of 3');
 });
 
-it('passes over a step whose spot never shows, rather than dimming nothing', async () => {
+it("leaves out a spot that isn't drawn on the page you're on, so the count is what you see", async () => {
+  await show(['today.nextUp', 'shell.tabs', 'shell.help']);
+  await fireEvent.press(screen.getByText('start'));
+  await settle();
+  expect(screen.getByTestId('tour-count')).toHaveTextContent('1 of 3');
+  await fireEvent.press(screen.getByTestId('tour-next'));
+  await settle();
+  expect(screen.getByText(TOURS.today.steps[3].title)).toBeTruthy();
+});
+
+it('passes over a step whose spot never shows on another page, rather than dimming nothing', async () => {
+  // Started from Week: Today's spots are looked for once it opens.
+  mockPath = '/week';
   await show(['today.nextUp', 'shell.tabs', 'shell.help']);
   await fireEvent.press(screen.getByText('start'));
   await settle();

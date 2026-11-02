@@ -1,6 +1,7 @@
 import type { TourRect, TourSpotId } from '@app/core';
 import { createContext, useContext, useEffect, useRef, type ReactNode, type RefObject } from 'react';
 import { Platform, View, type HostInstance, type ScrollViewInstance } from 'react-native';
+import { NavigationContext } from 'expo-router/react-navigation';
 
 /**
  * A spot a tour can light: how to find it on screen and how to bring it
@@ -35,19 +36,22 @@ const REVEAL_ABOVE = 96;
  * Tags a piece of the page as a spot that tours can light (`id` from
  * TOUR_SPOTS in @app/core). It draws nothing of its own: a View around the
  * children that a tour can measure. Outside a house's screens (no tour
- * player), it's only that View.
+ * player), it's only that View. A tab you've been to stays drawn behind the
+ * one showing (on the web, at the same place on screen), so a spot on a
+ * screen that isn't the focused one says it isn't showing.
  */
 export function TourSpot({ id, children }: { id: TourSpotId; children: ReactNode }) {
   const registry = useContext(SpotRegistryContext);
   const scroll = useContext(TourScrollContext);
+  const navigation = useContext(NavigationContext);
   const view = useRef<HostInstance>(null);
   useEffect(
     () =>
       registry?.add(id, {
-        measure: () => measure(view.current),
+        measure: () => (navigation && !navigation.isFocused() ? Promise.resolve(null) : measure(view.current)),
         reveal: () => reveal(view.current, scroll?.current ?? null),
       }),
-    [registry, id, scroll],
+    [registry, id, scroll, navigation],
   );
   return (
     <View ref={view} collapsable={false} testID={`tour-spot-${id}`}>

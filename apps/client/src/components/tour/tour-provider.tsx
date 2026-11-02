@@ -82,12 +82,15 @@ export function TourProvider({ facts, children }: { facts: TourFacts; children: 
 
   const start = useCallback(
     (id: TourId) => {
-      const steps = tourSteps(id, facts);
+      // On the page you're on every spot that's drawn has signed in: leave out the ones that haven't
+      // (nothing else this week, say), so the count is what you'll see. Other pages' are looked for as they open.
+      const here = trimmed(pathname);
+      const steps = tourSteps(id, facts).filter((s) => s.page !== here || (spots.current.get(s.spot)?.length ?? 0) > 0);
       if (steps.length === 0) return;
       setRect(null);
       setRunning({ id, steps, index: 0 });
     },
-    [facts],
+    [facts, pathname],
   );
 
   const move = useCallback(

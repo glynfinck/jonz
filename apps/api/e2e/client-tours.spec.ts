@@ -24,8 +24,15 @@ async function shoot(page: Page, name: string) {
   await page.emulateMedia({ colorScheme: "light" });
 }
 
-/** The visible question mark: every tab has one, the hidden tabs too. */
-const helpButton = (page: Page) => page.getByTestId("help-button").filter({ visible: true });
+/**
+ * A tab you've been to stays drawn behind the one showing, at the same place
+ * on screen, with its wrapper aria-hidden: this finds the copy on the tab
+ * that's showing.
+ */
+const shown = (page: Page, testId: string) => page.locator(`[data-testid="${testId}"]:not([aria-hidden="true"] *)`);
+
+/** The question mark on the page showing (its screen's testID): every tab has one. */
+const helpButton = (page: Page, screen: string) => page.getByTestId(screen).getByTestId("help-button");
 
 /**
  * Plays a tour from the Help sheet to its end, checking each step: its
@@ -39,7 +46,7 @@ async function playTour(page: Page, id: TourId, facts: TourFacts, shotName?: str
     await expect(page.getByTestId("tour-count")).toHaveText(`${i + 1} of ${steps.length}`);
     await expect(page).toHaveURL(new RegExp(`${step.page}$`));
     // The ring is round a spot of that name that's on screen.
-    const spot = page.getByTestId(`tour-spot-${step.spot}`).filter({ visible: true }).first();
+    const spot = shown(page, `tour-spot-${step.spot}`).first();
     const ring = await page.getByTestId("tour-ring").boundingBox();
     const box = await spot.boundingBox();
     expect(ring, `${id}: step ${i + 1} lights ${step.spot}`).not.toBeNull();
@@ -62,8 +69,8 @@ async function playTour(page: Page, id: TourId, facts: TourFacts, shotName?: str
 }
 
 /** Opens Help and starts a tour from it: the page's own (the amber button) or one of the guides. */
-async function startFromHelp(page: Page, id: TourId, here: boolean) {
-  await helpButton(page).click();
+async function startFromHelp(page: Page, screen: string, id: TourId, here: boolean) {
+  await helpButton(page, screen).click();
   const sheet = page.getByTestId("help-sheet");
   await expect(sheet).toBeVisible();
   await (here ? sheet.getByTestId("help-tour-here") : sheet.getByTestId(`help-tour-${id}`)).click();
@@ -92,7 +99,7 @@ test("every tour plays through, each step lit on screen", async ({ context, page
   await expect(page.getByTestId("today-screen").getByTestId("next-up")).toBeVisible();
 
   // Help from the question mark: Today's tour first, the rest as guides, and the ways to report.
-  await helpButton(page).click();
+  await helpButton(page, "today-screen").click();
   const sheet = page.getByTestId("help-sheet");
   await expect(sheet.getByTestId("help-tour-here")).toHaveText(TOURS.today.title);
   await expect(sheet.getByTestId("help-tour-setUp")).toBeVisible();
@@ -100,34 +107,36 @@ test("every tour plays through, each step lit on screen", async ({ context, page
   await shoot(page, `help-${wide ? "laptop" : "phone"}`);
   await sheet.getByTestId("sheet-close").click();
 
-  await startFromHelp(page, "today", true);
+  await startFromHelp(page, "today-screen", "today", true);
   await playTour(page, "today", facts, `today-${wide ? "laptop" : "phone"}`);
 
   await page.getByTestId("tab-week").click();
-  await startFromHelp(page, "week", true);
+  await startFromHelp(page, "week-screen", "week", true);
   await playTour(page, "week", facts, `week-${wide ? "laptop" : "phone"}`);
 
   await page.getByTestId("tab-house").click();
-  await startFromHelp(page, "house", true);
+  await startFromHelp(page, "house-screen", "house", true);
   await playTour(page, "house", facts, `house-${wide ? "laptop" : "phone"}`);
 
   // The admins' tour walks across pages: the John list, the rules, Week and Today.
-  await startFromHelp(page, "setUp", false);
+  await startFromHelp(page, "house-screen", "setUp", false);
   await playTour(page, "setUp", facts, `setup-${wide ? "laptop" : "phone"}`);
 
   // Each is saved as seen on the account, and Help says so.
-  const { data } = await admin().auth.admin.getUserById(userId);
-  expect(data.user?.user_metadata.tours.seen).toEqual(expect.arrayContaining(["today", "week", "house", "setUp"]));
-  await helpButton(page).click();
+  await expect
+    .poll(async () => (await admin().auth.admin.getUserById(userId)).data.user?.user_metadata.tours.seen)
+    .toEqual(expect.arrayContaining(["today", "week", "house", "setUp"]));
+  await helpButton(page, "today-screen").click();
   await expect(page.getByTestId("help-sheet").getByTestId("help-tour-week")).toContainText(TOUR_COPY.seen);
   await mate.close();
 });
 
 test("Today offers its tour once to someone new; Skip and Escape end it", async ({ context, page }) => {
-  const { userId } = await dealtHouseInClient(context, "New Person", "New House", [{ name: "Bins out", category: "bins" }]);
+  // New, and not yet offered (everyone else in these tests says they've had it).
+  const { userId } = await dealtHouseInClient(context, "New Person", "New House", [{ name: "Bins out", category: "bins" }], [], {
+    newToTours: true,
+  });
   made.push(userId);
-  // New, and not yet offered (the other tests here say they've had it).
-  await admin().auth.admin.updateUserById(userId, { user_metadata: { tours: { seen: [], offerDone: false } } });
 
   await page.goto("/today");
   const offer = page.getByTestId("tour-offer");
@@ -156,9 +165,10 @@ test("Today offers its tour once to someone new; Skip and Escape end it", async 
 });
 
 test("Not now puts the offer away for good", async ({ context, page }) => {
-  const { userId } = await dealtHouseInClient(context, "Not Now", "Later House", [{ name: "Bins out", category: "bins" }]);
+  const { userId } = await dealtHouseInClient(context, "Not Now", "Later House", [{ name: "Bins out", category: "bins" }], [], {
+    newToTours: true,
+  });
   made.push(userId);
-  await admin().auth.admin.updateUserById(userId, { user_metadata: { tours: { seen: [], offerDone: false } } });
 
   await page.goto("/today");
   await page.getByTestId("tour-offer-no").click();
