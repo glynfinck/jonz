@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library'
 import { cancelAway, loadAway, setAway } from '@/api/away';
 import { loadHouse } from '@/api/board';
 import { catchUp } from '@/api/house';
+import { loadJohnList } from '@/api/settings';
 import AwayScreen from '@/app/(house)/house/away';
 import { snapshot } from '@/testing/house';
 import { renderPages, untilRead } from '@/testing/pages';
@@ -11,6 +12,9 @@ import { renderPages, untilRead } from '@/testing/pages';
 jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
 jest.mock('@/api/away', () => ({ loadAway: jest.fn(), setAway: jest.fn(), cancelAway: jest.fn() }));
 jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
+// Your days and best time are on the same page (house-prefs.test.tsx).
+jest.mock('@/api/my-prefs', () => ({ saveMyPrefs: jest.fn() }));
+jest.mock('@/api/settings', () => ({ loadJohnList: jest.fn() }));
 jest.mock('@/api/supabase', () => ({ supabase: {} }));
 jest.mock('@/hooks/use-membership', () => ({
   useMembership: () => ({ session: { user: { id: 'priya' } }, house: { id: 'h1', name: 'Flat 3' } }),
@@ -36,6 +40,7 @@ beforeEach(() => {
   (loadAway as jest.Mock).mockResolvedValue({ today: '2026-10-21', periods: [] });
   (loadHouse as jest.Mock).mockResolvedValue(snapshot());
   (catchUp as jest.Mock).mockResolvedValue(false);
+  (loadJohnList as jest.Mock).mockResolvedValue({ johns: [], groups: [] });
   (cancelAway as jest.Mock).mockResolvedValue(undefined);
   (setAway as jest.Mock).mockResolvedValue(0);
 });

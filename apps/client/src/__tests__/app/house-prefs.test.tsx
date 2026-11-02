@@ -1,14 +1,18 @@
-import { FOCUS_SHELL_COPY, NEW_JOHN, PAGE_TITLE, SECTION_LABEL, STEADY_COPY } from '@app/core';
+import { NEW_JOHN, PAGE_TITLE, STEADY_COPY } from '@app/core';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
+import { loadAway } from '@/api/away';
 import { loadHouse } from '@/api/board';
 import { catchUp } from '@/api/house';
 import { saveMyPrefs } from '@/api/my-prefs';
 import { loadJohnList } from '@/api/settings';
+import AwayScreen from '@/app/(house)/house/away';
 import PrefsScreen from '@/app/(house)/house/prefs';
 import { snapshot } from '@/testing/house';
 import { renderPages, untilRead } from '@/testing/pages';
 
+// Your days and best time are on Days and time away, beside the house's time away.
+jest.mock('@/api/away', () => ({ loadAway: jest.fn(), setAway: jest.fn(), cancelAway: jest.fn() }));
 jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
 jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
 jest.mock('@/api/my-prefs', () => ({ saveMyPrefs: jest.fn() }));
@@ -20,8 +24,8 @@ jest.mock('@/hooks/use-membership', () => ({
 
 const PRIYA = { days: [3, 4, 6] as (3 | 4 | 6)[], bestTime: 'morning' as const, rather: { mop: 1 as const } };
 
-async function open() {
-  await renderPages({ 'house/prefs': PrefsScreen }, '/house/prefs');
+async function open(path = '/house/away') {
+  await renderPages({ 'house/away': AwayScreen, 'house/prefs': PrefsScreen }, path);
   await untilRead();
 }
 
@@ -32,6 +36,7 @@ beforeEach(() => {
     snapshot({ members: base.members.map((m) => (m.userId === 'priya' ? { ...m, prefs: PRIYA } : m)) }),
   );
   (catchUp as jest.Mock).mockResolvedValue(false);
+  (loadAway as jest.Mock).mockResolvedValue({ today: '2026-10-21', periods: [] });
   (saveMyPrefs as jest.Mock).mockResolvedValue(undefined);
   (loadJohnList as jest.Mock).mockResolvedValue({
     johns: [
@@ -42,11 +47,12 @@ beforeEach(() => {
   });
 });
 
-it('sits under a title bar with the way back to House', async () => {
-  await open();
-  const bar = within(screen.getByTestId('title-bar'));
-  expect(bar.getByRole('header', { name: PAGE_TITLE.prefs })).toBeOnTheScreen();
-  expect(bar.getByRole('button', { name: FOCUS_SHELL_COPY.backTo(SECTION_LABEL.house) })).toBeOnTheScreen();
+it('is on Days and time away, where an old link to Preferences lands', async () => {
+  await open('/house/prefs');
+  expect(within(screen.getByTestId('title-bar')).getByRole('header', { name: PAGE_TITLE.away })).toBeOnTheScreen();
+  expect(screen.getByTestId('prefs-time')).toBeOnTheScreen();
+  // The house's time away is on the same page.
+  expect(screen.getByTestId('away-panel')).toBeOnTheScreen();
 });
 
 it('shows the days that suit you, your best time and your Johns as saved', async () => {

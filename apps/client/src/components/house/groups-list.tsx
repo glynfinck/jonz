@@ -8,7 +8,6 @@ import { deleteGroup, saveGroup } from '@/api/settings';
 import { Alert } from '@/components/alert';
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
-import { EmptyState } from '@/components/empty-state';
 import { Field } from '@/components/field';
 import { Group, GroupItem } from '@/components/group';
 import { Row, RowIcon } from '@/components/row';
@@ -22,11 +21,11 @@ import { INSET, LABEL_GAP, SECTION_GAP, SPACE } from '@/theme';
 type Draft = { id?: string; name: string; memberIds: string[] };
 
 /**
- * Groups: the parts of the house only some of you share. A John can belong
- * to one, and then only that group is handed it. Each group is a row (its
- * name, who's in it), which an admin opens to change; with none yet, a
- * sentence on what a group is for. Several page children, so it goes
- * straight in a Screen.
+ * Groups, on the John list: the parts of the house only some of you share.
+ * A John can belong to one, and then only that group is handed it. Each
+ * group is a row (its name, who's in it), which an admin opens to change,
+ * and Add a group for an admin; under them, what a group is for while
+ * there are none, and what belonging to one does once there are.
  */
 export function GroupsList({
   houseId,
@@ -46,37 +45,28 @@ export function GroupsList({
 
   return (
     <>
-      {groups.length === 0 ? (
-        <EmptyState
-          icon={UsersIcon}
-          title={SETUP_COPY.noGroups}
-          body={GROUPS_COPY.empty}
-          action={editable ? <Button icon={PlusIcon} label={SETUP_COPY.addGroup} onPress={add} testID="add-group" /> : undefined}
-          testID="groups"
-        />
-      ) : (
-        <View style={styles.noted} testID="groups">
-          <Group>
-            {groups.map((g) => {
-              const members = membersLine(g.memberIds, people, me);
-              return (
-                <Row
-                  key={g.id}
-                  leading={<RowIcon icon={UsersIcon} />}
-                  title={g.name}
-                  meta={members}
-                  chevron={editable}
-                  onPress={editable ? () => setEditing({ id: g.id, name: g.name, memberIds: g.memberIds }) : undefined}
-                  accessibilityLabel={editable ? `${GROUPS_COPY.edit(g.name)}, ${members}` : undefined}
-                  testID="group"
-                />
-              );
-            })}
-            {editable ? <Row leading={<RowIcon icon={PlusIcon} />} title={SETUP_COPY.addGroup} onPress={add} testID="add-group" /> : null}
-          </Group>
-          <Meta style={styles.note}>{SETUP_COPY.groupsNote}</Meta>
-        </View>
-      )}
+      <View style={styles.noted} testID="groups">
+        <Group>
+          {groups.map((g) => {
+            const members = membersLine(g.memberIds, people, me);
+            return (
+              <Row
+                key={g.id}
+                leading={<RowIcon icon={UsersIcon} />}
+                title={g.name}
+                meta={members}
+                chevron={editable}
+                onPress={editable ? () => setEditing({ id: g.id, name: g.name, memberIds: g.memberIds }) : undefined}
+                accessibilityLabel={editable ? `${GROUPS_COPY.edit(g.name)}, ${members}` : undefined}
+                testID="group"
+              />
+            );
+          })}
+          {editable ? <Row leading={<RowIcon icon={PlusIcon} />} title={SETUP_COPY.addGroup} onPress={add} testID="add-group" /> : null}
+        </Group>
+        {/* With none yet, what a group is for; then what belonging to one does. */}
+        <Meta style={styles.note}>{groups.length === 0 ? GROUPS_COPY.empty : SETUP_COPY.groupsNote}</Meta>
+      </View>
       <Sheet
         visible={editing !== null}
         title={editing?.id ? GROUPS_COPY.edit(editing.name) : SETUP_COPY.addGroup}

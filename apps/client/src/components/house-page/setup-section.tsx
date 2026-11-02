@@ -1,25 +1,37 @@
-import { ADMINS_COPY, FOCUS_SHELL_COPY, HISTORY_COPY, HOUSE_LOWER_COPY, houseSetupValues, localDate } from '@app/core';
-import { HistoryIcon, ListTodoIcon, PlaneIcon, ScrollTextIcon, ShieldCheckIcon, UsersIcon } from 'lucide-react-native';
-import { View } from 'react-native';
+import {
+  FOCUS_SHELL_COPY,
+  HOUSE_LOWER_COPY,
+  houseSetupValues,
+  localDate,
+} from "@app/core";
+import { ListTodoIcon, PlaneIcon, ScrollTextIcon } from "lucide-react-native";
+import { View } from "react-native";
 
-import { Row, RowIcon } from '@/components/row';
-import { Section } from '@/components/section';
-import type { HouseView } from '@/hooks/use-house';
-import { useAway } from '@/hooks/use-away';
-import { useJohnList } from '@/hooks/use-john-list';
-import { useReadOnFocus } from '@/hooks/use-refresh';
-import { useTheme } from '@/theme';
-import { TourSpot } from '@/components/tour/tour-spot';
+import { Row, RowIcon } from "@/components/row";
+import { Section } from "@/components/section";
+import type { HouseView } from "@/hooks/use-house";
+import { useAway } from "@/hooks/use-away";
+import { useJohnList } from "@/hooks/use-john-list";
+import { useReadOnFocus } from "@/hooks/use-refresh";
+import { useTheme } from "@/theme";
+import { TourSpot } from "@/components/tour/tour-spot";
 
 /**
  * House setup: a row to each of the house's setup pages, each showing what
- * it's set to now (the Johns and their effort, the money rules, who's away
- * next, the groups), who the admins are, and History, where anything
- * still in reach is undone.
- * Groups shows to admins, and to everyone once there is
- * one. Changing any of them changes the house for everyone, so it says so.
+ * it's set to now: the Johns and their effort (the groups are on that
+ * page too), the money rules (and the admins who can change them), and who's
+ * away next (with your own days). Changing any of them changes the house
+ * for everyone, so it says so. History is on the Wall.
  */
-export function SetupSection({ houseId, userId, view }: { houseId: string; userId: string; view: HouseView }) {
+export function SetupSection({
+  houseId,
+  userId,
+  view,
+}: {
+  houseId: string;
+  userId: string;
+  view: HouseView;
+}) {
   const pending = <PendingMeta />;
   const list = useJohnList(houseId);
   const away = useAway(houseId, view.snapshot);
@@ -32,15 +44,20 @@ export function SetupSection({ houseId, userId, view }: { houseId: string; userI
     johns: list.data?.johns,
     groups: list.data?.groups.length,
     away: away.data?.periods,
-    today: away.data?.today ?? localDate(view.now, view.snapshot.rules.timezone),
+    today:
+      away.data?.today ?? localDate(view.now, view.snapshot.rules.timezone),
     members: view.snapshot.members,
     me: userId,
-    admin: view.me?.role === 'admin',
+    admin: view.me?.role === "admin",
   });
 
   return (
     <TourSpot id="house.setup">
-      <Section label={FOCUS_SHELL_COPY.setup} right={HOUSE_LOWER_COPY.setupNote} testID="setup-section">
+      <Section
+        label={FOCUS_SHELL_COPY.setup}
+        right={HOUSE_LOWER_COPY.setupNote}
+        testID="setup-section"
+      >
         <Row
           leading={<RowIcon icon={ListTodoIcon} />}
           title={HOUSE_LOWER_COPY.johns}
@@ -64,32 +81,6 @@ export function SetupSection({ houseId, userId, view }: { houseId: string; userI
           href="/house/away"
           chevron
           testID="to-away"
-        />
-        {values.showGroups ? (
-          <Row
-            leading={<RowIcon icon={UsersIcon} />}
-            title={HOUSE_LOWER_COPY.groups}
-            meta={values.groups ?? pending}
-            href="/house/groups"
-            chevron
-            testID="to-groups"
-          />
-        ) : null}
-        <Row
-          leading={<RowIcon icon={ShieldCheckIcon} />}
-          title={ADMINS_COPY.title}
-          meta={ADMINS_COPY.meta(view.snapshot.members.filter((m) => m.role === 'admin').length, view.snapshot.members.length)}
-          href="/house/admins"
-          chevron
-          testID="to-admins"
-        />
-        <Row
-          leading={<RowIcon icon={HistoryIcon} />}
-          title={HISTORY_COPY.title}
-          meta={HISTORY_COPY.meta}
-          href="/house/history"
-          chevron
-          testID="to-history"
         />
       </Section>
     </TourSpot>

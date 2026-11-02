@@ -1,16 +1,27 @@
-import { FOCUS_SHELL_COPY, GROUPS_COPY, PAGE_TITLE, SECTION_LABEL, SETUP_COPY } from '@app/core';
+import { GROUPS_COPY, PAGE_TITLE, SETUP_COPY } from '@app/core';
+import { Slot } from 'expo-router';
 import { fireEvent, screen, waitFor, within } from 'expo-router/testing-library';
 
 import { loadHouse } from '@/api/board';
 import { catchUp } from '@/api/house';
 import { deleteGroup, loadJohnList, saveGroup } from '@/api/settings';
 import GroupsScreen from '@/app/(house)/house/groups';
+import JohnListScreen from '@/app/(house)/house/johns';
+import { ToastProvider } from '@/components/toast';
 import { snapshot } from '@/testing/house';
 import { BATH, renderPages, untilRead } from '@/testing/pages';
 
 jest.mock('@/api/board', () => ({ loadHouse: jest.fn() }));
 jest.mock('@/api/house', () => ({ catchUp: jest.fn() }));
-jest.mock('@/api/settings', () => ({ loadJohnList: jest.fn(), saveGroup: jest.fn(), deleteGroup: jest.fn() }));
+// Groups are on the John list, among the Johns they share.
+jest.mock('@/api/settings', () => ({
+  loadJohnList: jest.fn(),
+  saveGroup: jest.fn(),
+  deleteGroup: jest.fn(),
+  saveJohn: jest.fn(),
+  archiveJohn: jest.fn(),
+  dealThisWeek: jest.fn(),
+}));
 jest.mock('@/api/supabase', () => ({ supabase: {} }));
 
 const mockMembership = { userId: 'priya' };
@@ -20,9 +31,18 @@ jest.mock('@/hooks/use-membership', () => ({
 
 const UPSTAIRS = { id: 'g1', name: 'Upstairs bathroom', memberIds: ['priya', 'sam'] };
 
-async function open(as: 'priya' | 'sam' = 'priya') {
+/** The house's toasts, as its layout mounts them (the deal at the foot of the list uses them). */
+function HouseLayout() {
+  return (
+    <ToastProvider>
+      <Slot />
+    </ToastProvider>
+  );
+}
+
+async function open(as: 'priya' | 'sam' = 'priya', path = '/house/johns') {
   mockMembership.userId = as;
-  await renderPages({ 'house/groups': GroupsScreen }, '/house/groups');
+  await renderPages({ 'house/_layout': HouseLayout, 'house/johns': JohnListScreen, 'house/groups': GroupsScreen }, path);
   await untilRead();
 }
 
@@ -34,11 +54,15 @@ beforeEach(() => {
   for (const move of [saveGroup, deleteGroup]) (move as jest.Mock).mockResolvedValue(undefined);
 });
 
-it('sits under a title bar with the way back to House', async () => {
-  await open();
-  const bar = within(screen.getByTestId('title-bar'));
-  expect(bar.getByRole('header', { name: PAGE_TITLE.groups })).toBeOnTheScreen();
-  expect(bar.getByRole('button', { name: FOCUS_SHELL_COPY.backTo(SECTION_LABEL.house) })).toBeOnTheScreen();
+it('is on the John list, where an old link to Groups lands', async () => {
+  (loadJohnList as jest.Mock).mockResolvedValue({ johns: [{ ...BATH, groupId: 'g1' }], groups: [UPSTAIRS] });
+  await open('priya', '/house/groups');
+  expect(within(screen.getByTestId('title-bar')).getByRole('header', { name: PAGE_TITLE.johnList })).toBeOnTheScreen();
+  const groups = within(screen.getByTestId('johns-groups'));
+  expect(groups.getByText(GROUPS_COPY.title)).toBeOnTheScreen();
+  expect(groups.getByTestId('group')).toHaveTextContent(/Upstairs bathroom/);
+  // On a phone, at the foot: after the Johns.
+  expect(screen.getByTestId('john-def')).toBeOnTheScreen();
 });
 
 it('names each group and who is in it, and says when nobody is', async () => {
@@ -53,11 +77,13 @@ it('names each group and who is in it, and says when nobody is', async () => {
   expect(screen.getByText(SETUP_COPY.groupsNote)).toBeOnTheScreen();
 });
 
-it('explains what a group is before there are any', async () => {
+it('explains what a group is to an admin before there are any, and shows a housemate none', async () => {
+  await open();
+  expect(within(screen.getByTestId('johns-groups')).getByText(GROUPS_COPY.empty)).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: SETUP_COPY.addGroup })).toBeOnTheScreen();
+
   await open('sam');
-  expect(screen.getByText(SETUP_COPY.noGroups)).toBeOnTheScreen();
-  expect(screen.getByText(GROUPS_COPY.empty)).toBeOnTheScreen();
-  expect(screen.queryByRole('button', { name: SETUP_COPY.addGroup })).toBeNull();
+  expect(screen.queryByTestId('johns-groups')).toBeNull();
 });
 
 describe('an admin', () => {

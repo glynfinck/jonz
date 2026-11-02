@@ -28,7 +28,8 @@ export const PAGE_TITLE = {
   welcome: "No house yet",
   johnList: "The John list",
   rules: "House rules",
-  away: "Time away",
+  /** Your days and best time (what used to be Preferences) beside the house's time away. */
+  away: "Days and time away",
   groups: "Groups",
   describe: "Describe your house",
   ask: `Ask ${APP_NAME}`,
@@ -1465,7 +1466,7 @@ export const HOUSE_LOWER_COPY = {
   closePanel: "Close",
   johns: "Johns",
   rules: "Rules",
-  away: "Time away",
+  away: "Days and time away",
   groups: "Groups",
   // Each setup row's value.
   noJohns: "None yet",

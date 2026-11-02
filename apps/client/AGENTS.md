@@ -158,9 +158,9 @@ permanent once a store has seen them.
     latest, House setup, You, and Leave; and `StakeHistory` and `MetaLine`
     / `Money` (a row's meta parts and an amount, hazard marks included).
   - `house/`: the setup pages' editors (`JohnList`, `RulesForm` with its
-    `RulesFoot`, `GroupsList`, time away's `AwayCalendar`, `MyTrips` and
-    `AwayForm`, and `Reminders`), `DealButton`, and `HousePage`, the frame
-    of every page House pushes.
+    `RulesFoot`, `GroupsList`, `AdminsList`, your `PrefsForm`, time away's
+    `AwayCalendar`, `MyTrips` and `AwayForm`, and `Reminders`),
+    `DealButton`, and `HousePage`, the frame of every page House pushes.
   - `person/`: a housemate's page (`PersonSections`, `PersonLines`), and
     for admins Make admin and Remove (`PersonAdmin`).
   - `wall/`: a Wall row with its reactions control, and `WallEventSheet`,
@@ -203,7 +203,9 @@ permanent once a store has seen them.
   tab, so nothing else goes there: House is a stack
   (`(house)/house/_layout.tsx`): the group page (`index.tsx`) and the pages
   it pushes, `wall`, `stake`, `people/[userId]` (a housemate's page) and
-  the setup pages `johns`, `rules`, `away`, `groups` and `describe`
+  the setup pages `johns` (with the house's groups), `rules` (with its
+  admins), `away` (Days and time away: your preferences beside the house's
+  time away) and `describe`
   (Describe your house, or Ask Jonz once there's a list, opened from the
   title bar's sparkles, `TitleBar`'s `ask`, through `useAskJonz()`, which from
   `WIDE` opens the same chat as a right-hand panel, `AskPanel`, instead; a chat:
@@ -216,7 +218,11 @@ permanent once a store has seen them.
   `app.json` (a phone, and links inside the app) and, the same three, the
   host's in `vercel.json` (a web page opened cold on one, where the router's
   own redirect screen would leave `/house/house/wall` in the address bar);
-  `vercel.test.ts` keeps the two lists alike.
+  `vercel.test.ts` keeps the two lists alike. The pages merged into
+  others on 1 Nov (`groups`, `admins`, `prefs` and `history`) stay as route
+  files that only `<Redirect>` to the page they joined, with an absolute
+  href (so no `/house/house/…`): History's lands on the Wall with
+  `?view=history`, a query the router's redirects can't carry.
 - **What a house screen shows comes through React Query**
   (`@tanstack/react-query`; `QueryProvider` in `hooks/query.tsx` wraps the
   root layout). One cache entry per house, `houseKey(id)` from
