@@ -1,14 +1,20 @@
-import { FOCUS_SHELL_COPY, HOUSE_LOWER_COPY, houseSetupValues, localDate } from '@app/core';
-import { ListTodoIcon, PlaneIcon, ScrollTextIcon } from 'lucide-react-native';
-import { View } from 'react-native';
+import {
+  FOCUS_SHELL_COPY,
+  HOUSE_LOWER_COPY,
+  houseSetupValues,
+  localDate,
+} from "@app/core";
+import { ListTodoIcon, PlaneIcon, ScrollTextIcon } from "lucide-react-native";
+import { View } from "react-native";
 
-import { Row, RowIcon } from '@/components/row';
-import { Section } from '@/components/section';
-import type { HouseView } from '@/hooks/use-house';
-import { useAway } from '@/hooks/use-away';
-import { useJohnList } from '@/hooks/use-john-list';
-import { useReadOnFocus } from '@/hooks/use-refresh';
-import { useTheme } from '@/theme';
+import { Row, RowIcon } from "@/components/row";
+import { Section } from "@/components/section";
+import type { HouseView } from "@/hooks/use-house";
+import { useAway } from "@/hooks/use-away";
+import { useJohnList } from "@/hooks/use-john-list";
+import { useReadOnFocus } from "@/hooks/use-refresh";
+import { useTheme } from "@/theme";
+import { TourSpot } from "@/components/tour/tour-spot";
 
 /**
  * House setup: a row to each of the house's setup pages, each showing what
@@ -17,7 +23,15 @@ import { useTheme } from '@/theme';
  * away next (with your own days). Changing any of them changes the house
  * for everyone, so it says so. History is on the Wall.
  */
-export function SetupSection({ houseId, userId, view }: { houseId: string; userId: string; view: HouseView }) {
+export function SetupSection({
+  houseId,
+  userId,
+  view,
+}: {
+  houseId: string;
+  userId: string;
+  view: HouseView;
+}) {
   const pending = <PendingMeta />;
   const list = useJohnList(houseId);
   const away = useAway(houseId, view.snapshot);
@@ -30,39 +44,46 @@ export function SetupSection({ houseId, userId, view }: { houseId: string; userI
     johns: list.data?.johns,
     groups: list.data?.groups.length,
     away: away.data?.periods,
-    today: away.data?.today ?? localDate(view.now, view.snapshot.rules.timezone),
+    today:
+      away.data?.today ?? localDate(view.now, view.snapshot.rules.timezone),
     members: view.snapshot.members,
     me: userId,
-    admin: view.me?.role === 'admin',
+    admin: view.me?.role === "admin",
   });
 
   return (
-    <Section label={FOCUS_SHELL_COPY.setup} right={HOUSE_LOWER_COPY.setupNote} testID="setup-section">
-      <Row
-        leading={<RowIcon icon={ListTodoIcon} />}
-        title={HOUSE_LOWER_COPY.johns}
-        meta={values.johns ?? pending}
-        href="/house/johns"
-        chevron
-        testID="to-johns"
-      />
-      <Row
-        leading={<RowIcon icon={ScrollTextIcon} />}
-        title={HOUSE_LOWER_COPY.rules}
-        meta={values.rules}
-        href="/house/rules"
-        chevron
-        testID="to-rules"
-      />
-      <Row
-        leading={<RowIcon icon={PlaneIcon} />}
-        title={HOUSE_LOWER_COPY.away}
-        meta={values.away ?? pending}
-        href="/house/away"
-        chevron
-        testID="to-away"
-      />
-    </Section>
+    <TourSpot id="house.setup">
+      <Section
+        label={FOCUS_SHELL_COPY.setup}
+        right={HOUSE_LOWER_COPY.setupNote}
+        testID="setup-section"
+      >
+        <Row
+          leading={<RowIcon icon={ListTodoIcon} />}
+          title={HOUSE_LOWER_COPY.johns}
+          meta={values.johns ?? pending}
+          href="/house/johns"
+          chevron
+          testID="to-johns"
+        />
+        <Row
+          leading={<RowIcon icon={ScrollTextIcon} />}
+          title={HOUSE_LOWER_COPY.rules}
+          meta={values.rules}
+          href="/house/rules"
+          chevron
+          testID="to-rules"
+        />
+        <Row
+          leading={<RowIcon icon={PlaneIcon} />}
+          title={HOUSE_LOWER_COPY.away}
+          meta={values.away ?? pending}
+          href="/house/away"
+          chevron
+          testID="to-away"
+        />
+      </Section>
+    </TourSpot>
   );
 }
 
