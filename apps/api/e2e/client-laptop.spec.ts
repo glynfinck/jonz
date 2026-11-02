@@ -219,7 +219,7 @@ test("each place spreads out on a laptop, and a narrow window keeps the phone's 
   // A screen wide enough for the list beside the chat with Jonz still has one panel down the right: a John closes the chat.
   await page.setViewportSize({ width: 1920, height: 1080 });
   await expect(house.getByTestId("house-pair")).toBeVisible();
-  const table = groupOf(house.getByTestId("house-table").locator(":scope > div").first());
+  const table = groupOf(house.getByTestId("house-table"));
   const wall = groupOf(house.getByTestId("wall-section").locator(":scope > div").first());
   expect(await topOf(table)).toBeCloseTo(await topOf(wall), 0);
   await shoot(page, "house-wide");
