@@ -1,0 +1,173 @@
+import { TOUR_COPY, TOURS, tourSteps, type TourFacts, type TourId } from "@app/core";
+import { expect, test, type Page } from "@playwright/test";
+
+import { admin, CLIENT_URL, cleanUp, dealtHouseInClient } from "./auth";
+
+// Help and tours in the Expo app's web build: the title bar's question mark
+// opens Help, and every tour plays through on a phone and a laptop with each
+// step's spot lit on screen. A page that changes so a tour's spot goes
+// missing fails here, rather than leaving a dim page with nothing lit.
+// Today offers its tour once to someone new, and Not now puts it away for good.
+// SHOTS=<folder> also saves a step of each tour and the Help sheet, in daylight and after dark.
+test.use({ baseURL: CLIENT_URL });
+
+const made: string[] = [];
+test.afterAll(async () => cleanUp(made));
+
+async function shoot(page: Page, name: string) {
+  const folder = process.env.SHOTS;
+  if (!folder) return;
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    await page.screenshot({ path: `${folder}/${name}-${colorScheme}.png` });
+  }
+  await page.emulateMedia({ colorScheme: "light" });
+}
+
+/** The visible question mark: every tab has one, the hidden tabs too. */
+const helpButton = (page: Page) => page.getByTestId("help-button").filter({ visible: true });
+
+/**
+ * Plays a tour from the Help sheet to its end, checking each step: its
+ * words, its count, and the lit ring sitting round its spot, on screen.
+ */
+async function playTour(page: Page, id: TourId, facts: TourFacts, shotName?: string) {
+  const steps = tourSteps(id, facts);
+  const card = page.getByTestId("tour-card");
+  for (const [i, step] of steps.entries()) {
+    await expect(card.getByText(step.title, { exact: true })).toBeVisible();
+    await expect(page.getByTestId("tour-count")).toHaveText(`${i + 1} of ${steps.length}`);
+    await expect(page).toHaveURL(new RegExp(`${step.page}$`));
+    // The ring is round a spot of that name that's on screen.
+    const spot = page.getByTestId(`tour-spot-${step.spot}`).filter({ visible: true }).first();
+    const ring = await page.getByTestId("tour-ring").boundingBox();
+    const box = await spot.boundingBox();
+    expect(ring, `${id}: step ${i + 1} lights ${step.spot}`).not.toBeNull();
+    expect(box).not.toBeNull();
+    expect(Math.abs(ring!.x + 8 - box!.x)).toBeLessThan(2);
+    expect(Math.abs(ring!.y + 8 - box!.y)).toBeLessThan(2);
+    // The card doesn't cover the spot, unless the spot is taller than the window.
+    const viewport = page.viewportSize()!;
+    const cardBox = (await card.boundingBox())!;
+    expect(cardBox.y + cardBox.height).toBeLessThanOrEqual(viewport.height);
+    if (box!.height + 200 < viewport.height) {
+      const overlaps =
+        cardBox.x < box!.x + box!.width && box!.x < cardBox.x + cardBox.width && cardBox.y < box!.y + box!.height && box!.y < cardBox.y + cardBox.height;
+      expect(overlaps, `${id}: step ${i + 1}'s card is clear of ${step.spot}`).toBe(false);
+    }
+    if (i === 0 && shotName) await shoot(page, shotName);
+    await page.getByTestId("tour-next").click();
+  }
+  await expect(page.getByTestId("tour")).toHaveCount(0);
+}
+
+/** Opens Help and starts a tour from it: the page's own (the amber button) or one of the guides. */
+async function startFromHelp(page: Page, id: TourId, here: boolean) {
+  await helpButton(page).click();
+  const sheet = page.getByTestId("help-sheet");
+  await expect(sheet).toBeVisible();
+  await (here ? sheet.getByTestId("help-tour-here") : sheet.getByTestId(`help-tour-${id}`)).click();
+}
+
+test("every tour plays through, each step lit on screen", async ({ context, page }, info) => {
+  test.setTimeout(120_000);
+  const mate = await context.browser()!.newContext();
+  const { userId, housemateIds } = await dealtHouseInClient(
+    context,
+    "Tour Admin",
+    "Tour House",
+    [
+      { name: "Bins out", category: "bins", dueTime: "20:00" },
+      { name: "Clean the bath", category: "bathroom" },
+      { name: "Kitchen floor", category: "floors" },
+      { name: "Wipe the hob", category: "kitchen" },
+    ],
+    [{ context: mate, name: "Tour Mate" }],
+  );
+  made.push(userId, ...housemateIds);
+  const wide = info.project.name === "laptop-chrome" || info.project.name === "desktop-firefox";
+  const facts: TourFacts = { admin: true, wide, toCheck: false, hasJohns: true };
+
+  await page.goto("/today");
+  await expect(page.getByTestId("today-screen").getByTestId("next-up")).toBeVisible();
+
+  // Help from the question mark: Today's tour first, the rest as guides, and the ways to report.
+  await helpButton(page).click();
+  const sheet = page.getByTestId("help-sheet");
+  await expect(sheet.getByTestId("help-tour-here")).toHaveText(TOURS.today.title);
+  await expect(sheet.getByTestId("help-tour-setUp")).toBeVisible();
+  await expect(sheet.getByTestId("help-report")).toBeVisible();
+  await shoot(page, `help-${wide ? "laptop" : "phone"}`);
+  await sheet.getByTestId("sheet-close").click();
+
+  await startFromHelp(page, "today", true);
+  await playTour(page, "today", facts, `today-${wide ? "laptop" : "phone"}`);
+
+  await page.getByTestId("tab-week").click();
+  await startFromHelp(page, "week", true);
+  await playTour(page, "week", facts, `week-${wide ? "laptop" : "phone"}`);
+
+  await page.getByTestId("tab-house").click();
+  await startFromHelp(page, "house", true);
+  await playTour(page, "house", facts, `house-${wide ? "laptop" : "phone"}`);
+
+  // The admins' tour walks across pages: the John list, the rules, Week and Today.
+  await startFromHelp(page, "setUp", false);
+  await playTour(page, "setUp", facts, `setup-${wide ? "laptop" : "phone"}`);
+
+  // Each is saved as seen on the account, and Help says so.
+  const { data } = await admin().auth.admin.getUserById(userId);
+  expect(data.user?.user_metadata.tours.seen).toEqual(expect.arrayContaining(["today", "week", "house", "setUp"]));
+  await helpButton(page).click();
+  await expect(page.getByTestId("help-sheet").getByTestId("help-tour-week")).toContainText(TOUR_COPY.seen);
+  await mate.close();
+});
+
+test("Today offers its tour once to someone new; Skip and Escape end it", async ({ context, page }) => {
+  const { userId } = await dealtHouseInClient(context, "New Person", "New House", [{ name: "Bins out", category: "bins" }]);
+  made.push(userId);
+  // New, and not yet offered (the other tests here say they've had it).
+  await admin().auth.admin.updateUserById(userId, { user_metadata: { tours: { seen: [], offerDone: false } } });
+
+  await page.goto("/today");
+  const offer = page.getByTestId("tour-offer");
+  await expect(offer).toBeVisible();
+  await expect(offer).toContainText(TOUR_COPY.offerTitle);
+  await shoot(page, "offer");
+
+  // Show me starts it; Escape ends it, as Skip does, and the offer has gone.
+  await offer.getByTestId("tour-offer-yes").click();
+  await expect(page.getByTestId("tour-card")).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByTestId("tour-count")).toHaveText(/^2 of /);
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByTestId("tour-count")).toHaveText(/^1 of /);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("tour")).toHaveCount(0);
+  await expect(offer).toHaveCount(0);
+
+  // It stays gone after a reload: it's saved on the account.
+  await expect
+    .poll(async () => (await admin().auth.admin.getUserById(userId)).data.user?.user_metadata.tours)
+    .toEqual({ seen: ["today"], offerDone: true });
+  await page.reload();
+  await expect(page.getByTestId("today-screen").getByTestId("next-up")).toBeVisible();
+  await expect(page.getByTestId("tour-offer")).toHaveCount(0);
+});
+
+test("Not now puts the offer away for good", async ({ context, page }) => {
+  const { userId } = await dealtHouseInClient(context, "Not Now", "Later House", [{ name: "Bins out", category: "bins" }]);
+  made.push(userId);
+  await admin().auth.admin.updateUserById(userId, { user_metadata: { tours: { seen: [], offerDone: false } } });
+
+  await page.goto("/today");
+  await page.getByTestId("tour-offer-no").click();
+  await expect(page.getByTestId("tour-offer")).toHaveCount(0);
+  await expect
+    .poll(async () => (await admin().auth.admin.getUserById(userId)).data.user?.user_metadata.tours)
+    .toEqual({ seen: [], offerDone: true });
+  // House's Help has the tours too.
+  await page.getByTestId("tab-house").click();
+  await page.getByTestId("to-guides").filter({ visible: true }).click();
+  await expect(page.getByTestId("help-sheet")).toBeVisible();
+});

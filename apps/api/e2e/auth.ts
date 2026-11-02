@@ -210,7 +210,9 @@ async function createHousemate(name: string): Promise<{ email: string; id: strin
     email,
     password: PASSWORD,
     email_confirm: true,
-    user_metadata: { display_name: name },
+    // Everyone here is new, so Today would offer its tour: these tests say they've had the offer, and
+    // client-tours.spec.ts takes it back where it wants it.
+    user_metadata: { display_name: name, tours: { seen: [], offerDone: true } },
   });
   if (error) throw error;
   return { email, id: data.user.id };

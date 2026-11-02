@@ -13,6 +13,7 @@ import { WallEventRow, wallScene } from '@/components/wall/wall-row';
 import type { HouseView } from '@/hooks/use-house';
 import { useReact, useWallLatest } from '@/hooks/use-wall';
 import { useTheme } from '@/theme';
+import { TourSpot } from '@/components/tour/tour-spot';
 
 /** How many of the Wall's events House shows. */
 const LATEST = 4;
@@ -57,34 +58,36 @@ export function WallSection({ houseId, userId, view }: { houseId: string; userId
 
   return (
     <View testID="wall-section">
-      <Section label={WALL_COPY.title} right={seeAll}>
-        {!latest.data ? (
-          <GroupItem>
-            {latest.isError ? (
-              <ReadFailed message={WALL_FEED_COPY.unreadable} onRetry={() => void latest.refetch()} />
-            ) : (
-              <ActivityIndicator color={colors.foreground} accessibilityLabel={WALL_FEED_COPY.reading} />
-            )}
-          </GroupItem>
-        ) : rows.length === 0 ? (
-          <GroupItem>
-            <Body>{WALL_COPY.empty}</Body>
-          </GroupItem>
-        ) : (
-          rows.map((row) => (
-            <WallEventRow
-              key={row.id}
-              row={row}
-              problem={problemAt === row.id && open !== row.id ? problem : null}
-              onReact={(kind, on) => react(row.id, kind, on)}
-              onPress={() =>
-                row.board ? johnSheet.open(row.board.assignmentId, row.board.vote ? 'vote' : undefined) : show(row.id)
-              }
-              onReactions={() => show(row.id)}
-            />
-          ))
-        )}
-      </Section>
+      <TourSpot id="house.wall">
+        <Section label={WALL_COPY.title} right={seeAll}>
+          {!latest.data ? (
+            <GroupItem>
+              {latest.isError ? (
+                <ReadFailed message={WALL_FEED_COPY.unreadable} onRetry={() => void latest.refetch()} />
+              ) : (
+                <ActivityIndicator color={colors.foreground} accessibilityLabel={WALL_FEED_COPY.reading} />
+              )}
+            </GroupItem>
+          ) : rows.length === 0 ? (
+            <GroupItem>
+              <Body>{WALL_COPY.empty}</Body>
+            </GroupItem>
+          ) : (
+            rows.map((row) => (
+              <WallEventRow
+                key={row.id}
+                row={row}
+                problem={problemAt === row.id && open !== row.id ? problem : null}
+                onReact={(kind, on) => react(row.id, kind, on)}
+                onPress={() =>
+                  row.board ? johnSheet.open(row.board.assignmentId, row.board.vote ? 'vote' : undefined) : show(row.id)
+                }
+                onReactions={() => show(row.id)}
+              />
+            ))
+          )}
+        </Section>
+      </TourSpot>
       <WallEventSheet
         row={shown ?? null}
         problem={shown && problemAt === shown.id ? problem : null}
